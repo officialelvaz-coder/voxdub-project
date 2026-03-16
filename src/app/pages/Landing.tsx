@@ -1,3 +1,6 @@
+هذا الكود الكامل مع التعديلين:
+
+```tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,7 +13,8 @@ import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 
-const AUDIO_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+// ✅ التعديل 2: مسار العينة الصوتية المحلي
+const AUDIO_URL = "/audio/mustapha.mp3";
 
 const initialArtists = [
   { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg" },
@@ -24,18 +28,32 @@ const initialArtists = [
 export function Landing() {
   const navigate = useNavigate();
 
-  // ✅ التعديل 3: الافتراضي = visitor
-  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>('visitor');
+  // ✅ التعديل 1: نقرأ الـ role من localStorage ونحفظه
+  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(() => {
+    const saved = localStorage.getItem('voxdub_user_role');
+    if (saved === 'admin' || saved === 'artist') return saved;
+    return 'visitor';
+  });
+
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
   const [liveLang, setLiveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // ✅ التعديل 4: حالة نافذة تسجيل الدخول
+  // نافذة تسجيل الدخول
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // ✅ التعديل 1: حفظ الـ role عند كل تغيير
+  useEffect(() => {
+    localStorage.setItem('voxdub_user_role', userRole);
+  }, [userRole]);
+
+  useEffect(() => {
+    localStorage.setItem('voxdub_theme', themeColor);
+  }, [themeColor]);
 
   const handleAdminLogin = () => {
     if (loginUser === 'admin2026' && loginPass === 'admin2026') {
@@ -74,11 +92,6 @@ export function Landing() {
     toast.success("تم حفظ تعديلات الواجهة!");
   };
 
-  useEffect(() => {
-    localStorage.setItem('voxdub_theme', themeColor);
-  }, [themeColor]);
-
-  // ✅ التعديل 2: كل العينات من نفس ملف مصطفى
   const toggleAudio = (id: number) => {
     const savedSamples = localStorage.getItem(`voxdub_samples_${id}`);
     let audioToPlay = AUDIO_URL;
@@ -103,7 +116,6 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
-      {/* ✅ التعديل 1: خط Cairo على كل شيء */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
         *, *::before, *::after, body, input, textarea, button, select {
@@ -117,30 +129,39 @@ export function Landing() {
         .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; font-family: 'Cairo', sans-serif !important; }
         .pricing-input { border: 1px dashed ${themeColor}44; color: black; font-family: 'Cairo', sans-serif !important; }
         .about-icon-bg { background-color: ${themeColor}22; }
-
-        /* ✅ نافذة تسجيل الدخول */
         .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; border-radius: 2rem; padding: 2.5rem; width: 90%; max-width: 400px; text-align: center; direction: rtl; }
-        .login-input { width: 100%; border: 2px solid #e5e7eb; border-radius: 1rem; padding: 12px 16px; font-size: 16px; margin-bottom: 12px; text-align: right; font-family: 'Cairo', sans-serif !important; outline: none; }
+        .login-input { width: 100%; border: 2px solid #e5e7eb; border-radius: 1rem; padding: 12px 16px; font-size: 16px; margin-bottom: 12px; text-align: right; font-family: 'Cairo', sans-serif !important; outline: none; box-sizing: border-box; }
         .login-input:focus { border-color: ${themeColor}; }
         .login-btn { width: 100%; background: ${themeColor}; color: white; border: none; border-radius: 1rem; padding: 14px; font-size: 18px; font-weight: 900; cursor: pointer; font-family: 'Cairo', sans-serif !important; }
         .login-btn:hover { opacity: 0.9; }
         .login-error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: 700; }
       `}</style>
 
-      {/* ✅ التعديل 4: نافذة تسجيل الدخول */}
+      {/* نافذة تسجيل الدخول */}
       {showLoginModal && (
-        <div className="login-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}>
+        <div
+          className="login-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowLoginModal(false);
+              setLoginError('');
+            }
+          }}
+        >
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button
+                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
                 <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>
                   Vox<span style={{ color: themeColor }}>Dub</span>
                 </div>
-                <p style={{ color: '#6b7280', fontSize: '14px', fontWeight: 700 }}>دخول لوحة الإدارة</p>
+                <p style={{ color: '#6b7280', fontSize: '14px', fontWeight: 700, margin: '4px 0 0' }}>دخول لوحة الإدارة</p>
               </div>
             </div>
             <input
@@ -174,12 +195,14 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
+              <Button
+                onClick={saveAllChanges}
+                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
+              >
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
             <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-              {/* ✅ التعديل 4: زر لميس يفتح نافذة تسجيل الدخول */}
               <button
                 onClick={() => {
                   if (userRole === 'admin') {
@@ -211,11 +234,19 @@ export function Landing() {
 
       {/* Hero */}
       <section className="pt-32 pb-40 px-4 text-center">
-        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
-        <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.</p>
+        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">
+          اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى
+        </h1>
+        <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">
+          نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.
+        </p>
         <div className="flex justify-center gap-6">
-          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>
-          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
+          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">
+            اكتشف المبدعين
+          </a>
+          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">
+            باقاتنا
+          </a>
         </div>
       </section>
 
@@ -233,8 +264,16 @@ export function Landing() {
                       <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: themeColor + '33' }}>
                         <IconComponent size={52} style={{ color: themeColor }} />
                       </div>
-                      <input value={item.t} onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }} className="editable-input text-2xl font-black" />
-                      <textarea value={item.d} onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }} className="editable-input text-stone-400 font-bold h-24 resize-none text-lg" />
+                      <input
+                        value={item.t}
+                        onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }}
+                        className="editable-input text-2xl font-black"
+                      />
+                      <textarea
+                        value={item.d}
+                        onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }}
+                        className="editable-input text-stone-400 font-bold h-24 resize-none text-lg"
+                      />
                     </div>
                   ) : (
                     <>
@@ -256,7 +295,9 @@ export function Landing() {
       <section id="artists" className="py-32 bg-stone-50 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
-          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين</p>
+          <p className="text-xl text-stone-500 font-bold mb-24">
+            اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-right">
             {initialArtists.map((artist) => (
               <div key={artist.id} className="bg-vox-primary rounded-[4rem] p-10 shadow-2xl relative overflow-hidden group transition-all hover:-translate-y-4 text-white">
@@ -281,7 +322,6 @@ export function Landing() {
                   </div>
                 </div>
                 <div className="space-y-4 relative z-10">
-                  {/* ✅ التعديل 2: toggleAudio بدون defaultUrl */}
                   <button
                     onClick={() => toggleAudio(artist.id)}
                     className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}
@@ -289,7 +329,10 @@ export function Landing() {
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
-                  <a href={`/dashboard/artists/${artist.id}`} className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all">
+                  
+                    href={`/dashboard/artists/${artist.id}`}
+                    className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
+                  >
                     الملف الشخصي
                   </a>
                 </div>
@@ -302,7 +345,9 @@ export function Landing() {
       {/* Workflow */}
       <section id="workflow" className="py-32 bg-white text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-5xl font-black mb-24 italic text-stone-900">كيف <span className="text-vox-primary">نعمل؟</span></h2>
+          <h2 className="text-5xl font-black mb-24 italic text-stone-900">
+            كيف <span className="text-vox-primary">نعمل؟</span>
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
               { icon: Search, t: "1. اكتشف", d: "اختر الصوت المناسب لمشروعك." },
@@ -325,50 +370,96 @@ export function Landing() {
       {/* Pricing */}
       <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا الإبداعية</h2>
+          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">
+            باقاتنا الإبداعية
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
             {pricingData.map((plan: any, i: number) => (
-              <div key={i} className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}>
-                {plan.popular && <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">الأكثر طلباً</div>}
+              <div
+                key={i}
+                className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">
+                    الأكثر طلباً
+                  </div>
+                )}
                 {userRole === 'admin' ? (
                   <div className="space-y-3">
-                    <input value={plan.t} onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-2xl font-black text-stone-900" />
-                    <input value={plan.d} onChange={(e) => { const nd = [...pricingData]; nd[i].d = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-sm font-bold text-stone-400" />
+                    <input
+                      value={plan.t}
+                      onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }}
+                      className="editable-input pricing-input text-2xl font-black text-stone-900"
+                    />
+                    <input
+                      value={plan.d}
+                      onChange={(e) => { const nd = [...pricingData]; nd[i].d = e.target.value; setPricingData(nd); }}
+                      className="editable-input pricing-input text-sm font-bold text-stone-400"
+                    />
                     <div className="flex items-center justify-center gap-2 py-4">
-                      <input value={plan.p} onChange={(e) => { const nd = [...pricingData]; nd[i].p = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-4xl font-black text-vox-primary w-24" />
-                      <input value={plan.u} onChange={(e) => { const nd = [...pricingData]; nd[i].u = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-xs font-black text-stone-400 w-24" />
+                      <input
+                        value={plan.p}
+                        onChange={(e) => { const nd = [...pricingData]; nd[i].p = e.target.value; setPricingData(nd); }}
+                        className="editable-input pricing-input text-4xl font-black text-vox-primary w-24"
+                      />
+                      <input
+                        value={plan.u}
+                        onChange={(e) => { const nd = [...pricingData]; nd[i].u = e.target.value; setPricingData(nd); }}
+                        className="editable-input pricing-input text-xs font-black text-stone-400 w-24"
+                      />
                     </div>
-                    <textarea value={plan.f.join('\n')} onChange={(e) => { const nd = [...pricingData]; nd[i].f = e.target.value.split('\n'); setPricingData(nd); }} className="editable-input pricing-input text-stone-600 font-bold h-40 resize-none text-sm leading-relaxed" />
+                    <textarea
+                      value={plan.f.join('\n')}
+                      onChange={(e) => { const nd = [...pricingData]; nd[i].f = e.target.value.split('\n'); setPricingData(nd); }}
+                      className="editable-input pricing-input text-stone-600 font-bold h-40 resize-none text-sm leading-relaxed"
+                    />
                   </div>
                 ) : (
                   <>
                     <h3 className="text-2xl font-black mb-1">{plan.t}</h3>
                     <p className="text-stone-400 font-bold text-sm mb-6">{plan.d}</p>
-                    <div className="mb-8"><span className="text-5xl font-black text-vox-primary">{plan.p}</span><span className="text-stone-400 font-black text-xs mr-2">{plan.u}</span></div>
+                    <div className="mb-8">
+                      <span className="text-5xl font-black text-vox-primary">{plan.p}</span>
+                      <span className="text-stone-400 font-black text-xs mr-2">{plan.u}</span>
+                    </div>
                     <ul className="space-y-4 mb-10">
                       {plan.f.map((feature: string, j: number) => (
-                        <li key={j} className="flex items-center gap-3 font-bold text-stone-600 text-sm"><CheckCircle2 className="text-vox-primary flex-shrink-0" size={16} /> {feature}</li>
+                        <li key={j} className="flex items-center gap-3 font-bold text-stone-600 text-sm">
+                          <CheckCircle2 className="text-vox-primary flex-shrink-0" size={16} /> {feature}
+                        </li>
                       ))}
                     </ul>
                   </>
                 )}
-                <a href="#contact" className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}>اختيار الباقة</a>
+                
+                  href="#contact"
+                  className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}
+                >
+                  اختيار الباقة
+                </a>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Order & Footer */}
+      {/* Order */}
       <section id="contact" className="py-32 bg-white">
         <div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden">
           <OrderForm />
         </div>
       </section>
+
+      {/* Footer */}
       <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
-        <div className="text-4xl font-black mb-8 italic text-white">Vox<span className="text-vox-primary">Dub</span></div>
-        <p className="text-stone-600 font-bold italic">إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio</p>
+        <div className="text-4xl font-black mb-8 italic text-white">
+          Vox<span className="text-vox-primary">Dub</span>
+        </div>
+        <p className="text-stone-600 font-bold italic">
+          إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio
+        </p>
       </footer>
     </div>
   );
 }
+```
