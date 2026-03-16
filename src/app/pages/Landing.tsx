@@ -5,9 +5,9 @@ import {
   CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
-
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
+import { useAuth } from '../context/AuthContext';
 
 const AUDIO_URL = "/audio/mustapha.mp3";
 
@@ -20,16 +20,10 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg" }
 ];
 
-function getRoleFromStorage(): 'admin' | 'artist' | 'visitor' {
-  const saved = localStorage.getItem('voxdub_user_role');
-  if (saved === 'admin' || saved === 'artist') return saved;
-  return 'visitor';
-}
-
 export function Landing() {
   const navigate = useNavigate();
+  const { userRole, setUserRole, login } = useAuth();
 
-  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(getRoleFromStorage);
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
   const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -40,34 +34,13 @@ export function Landing() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // حفظ الـ role عند كل تغيير
-  useEffect(() => {
-    localStorage.setItem('voxdub_user_role', userRole);
-  }, [userRole]);
-
-  // نقرأ الـ role مباشرة عند mount وعند أي تغيير من صفحة أخرى
-  useEffect(() => {
-    setUserRole(getRoleFromStorage());
-    const handleStorageChange = () => setUserRole(getRoleFromStorage());
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
   useEffect(() => {
     localStorage.setItem('voxdub_theme', themeColor);
   }, [themeColor]);
 
-  // مسح العينات القديمة من localStorage
-  useEffect(() => {
-    for (let i = 1; i <= 6; i++) {
-      localStorage.removeItem(`voxdub_samples_${i}`);
-    }
-  }, []);
-
   const handleAdminLogin = () => {
-    if (loginUser === 'admin2026' && loginPass === 'admin2026') {
-      localStorage.setItem('voxdub_user_role', 'admin');
-      setUserRole('admin');
+    const success = login(loginUser, loginPass);
+    if (success) {
       setShowLoginModal(false);
       setLoginUser('');
       setLoginPass('');
@@ -149,10 +122,7 @@ export function Landing() {
         >
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
+              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
@@ -193,10 +163,7 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button
-                onClick={saveAllChanges}
-                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
-              >
+              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
@@ -220,10 +187,7 @@ export function Landing() {
                 واجهة المعلق
               </button>
               <button
-                onClick={() => {
-                  localStorage.setItem('voxdub_user_role', 'visitor');
-                  setUserRole('visitor');
-                }}
+                onClick={() => setUserRole('visitor')}
                 className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}
               >
                 زائر
