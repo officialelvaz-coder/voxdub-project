@@ -20,7 +20,6 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg" }
 ];
 
-// ✅ دالة مستقلة لقراءة الـ role — تُستدعى في كل render
 function getRoleFromStorage(): 'admin' | 'artist' | 'visitor' {
   const saved = localStorage.getItem('voxdub_user_role');
   if (saved === 'admin' || saved === 'artist') return saved;
@@ -30,9 +29,7 @@ function getRoleFromStorage(): 'admin' | 'artist' | 'visitor' {
 export function Landing() {
   const navigate = useNavigate();
 
-  // ✅ نقرأ الـ role من localStorage في كل مرة يُحمَّل فيها المكوّن
   const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(getRoleFromStorage);
-
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
   const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -43,19 +40,16 @@ export function Landing() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // ✅ عند كل تغيير في userRole نحفظه في localStorage
+  // حفظ الـ role عند كل تغيير
   useEffect(() => {
     localStorage.setItem('voxdub_user_role', userRole);
   }, [userRole]);
 
-  // ✅ نستمع لأي تغيير في localStorage من صفحات أخرى (مثل Dashboard)
+  // نقرأ الـ role مباشرة عند mount وعند أي تغيير من صفحة أخرى
   useEffect(() => {
-    const handleStorageChange = () => {
-      setUserRole(getRoleFromStorage());
-    };
-    window.addEventListener('storage', handleStorageChange);
-    // ✅ نقرأ مباشرة عند mount أيضاً (للتأكد عند العودة بـ navigate)
     setUserRole(getRoleFromStorage());
+    const handleStorageChange = () => setUserRole(getRoleFromStorage());
+    window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
@@ -63,7 +57,7 @@ export function Landing() {
     localStorage.setItem('voxdub_theme', themeColor);
   }, [themeColor]);
 
-  // ✅ مسح العينات القديمة من localStorage عند أول تحميل
+  // مسح العينات القديمة من localStorage
   useEffect(() => {
     for (let i = 1; i <= 6; i++) {
       localStorage.removeItem(`voxdub_samples_${i}`);
@@ -72,8 +66,8 @@ export function Landing() {
 
   const handleAdminLogin = () => {
     if (loginUser === 'admin2026' && loginPass === 'admin2026') {
-      setUserRole('admin');
       localStorage.setItem('voxdub_user_role', 'admin');
+      setUserRole('admin');
       setShowLoginModal(false);
       setLoginUser('');
       setLoginPass('');
@@ -155,7 +149,10 @@ export function Landing() {
         >
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button
+                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
@@ -196,7 +193,10 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
+              <Button
+                onClick={saveAllChanges}
+                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
+              >
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
@@ -221,8 +221,8 @@ export function Landing() {
               </button>
               <button
                 onClick={() => {
-                  setUserRole('visitor');
                   localStorage.setItem('voxdub_user_role', 'visitor');
+                  setUserRole('visitor');
                 }}
                 className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}
               >
