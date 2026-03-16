@@ -1,19 +1,14 @@
-هذا الكود الكامل مع التعديلين:
-
-```tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Mic2, Play, Pause, Award, Star, Mic, 
-  LogIn, CheckCircle2, LayoutDashboard, Info, Zap, Crown, Rocket, Save, 
-  Search, MessageSquare, Headphones, FileCheck, X
+  CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 
-// ✅ التعديل 2: مسار العينة الصوتية المحلي
 const AUDIO_URL = "/audio/mustapha.mp3";
 
 const initialArtists = [
@@ -25,39 +20,60 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg" }
 ];
 
+// ✅ دالة مستقلة لقراءة الـ role — تُستدعى في كل render
+function getRoleFromStorage(): 'admin' | 'artist' | 'visitor' {
+  const saved = localStorage.getItem('voxdub_user_role');
+  if (saved === 'admin' || saved === 'artist') return saved;
+  return 'visitor';
+}
+
 export function Landing() {
   const navigate = useNavigate();
 
-  // ✅ التعديل 1: نقرأ الـ role من localStorage ونحفظه
-  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(() => {
-    const saved = localStorage.getItem('voxdub_user_role');
-    if (saved === 'admin' || saved === 'artist') return saved;
-    return 'visitor';
-  });
+  // ✅ نقرأ الـ role من localStorage في كل مرة يُحمَّل فيها المكوّن
+  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(getRoleFromStorage);
 
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
-  const [liveLang, setLiveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
+  const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // نافذة تسجيل الدخول
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // ✅ التعديل 1: حفظ الـ role عند كل تغيير
+  // ✅ عند كل تغيير في userRole نحفظه في localStorage
   useEffect(() => {
     localStorage.setItem('voxdub_user_role', userRole);
   }, [userRole]);
+
+  // ✅ نستمع لأي تغيير في localStorage من صفحات أخرى (مثل Dashboard)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUserRole(getRoleFromStorage());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    // ✅ نقرأ مباشرة عند mount أيضاً (للتأكد عند العودة بـ navigate)
+    setUserRole(getRoleFromStorage());
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('voxdub_theme', themeColor);
   }, [themeColor]);
 
+  // ✅ مسح العينات القديمة من localStorage عند أول تحميل
+  useEffect(() => {
+    for (let i = 1; i <= 6; i++) {
+      localStorage.removeItem(`voxdub_samples_${i}`);
+    }
+  }, []);
+
   const handleAdminLogin = () => {
     if (loginUser === 'admin2026' && loginPass === 'admin2026') {
       setUserRole('admin');
+      localStorage.setItem('voxdub_user_role', 'admin');
       setShowLoginModal(false);
       setLoginUser('');
       setLoginPass('');
@@ -93,18 +109,12 @@ export function Landing() {
   };
 
   const toggleAudio = (id: number) => {
-    const savedSamples = localStorage.getItem(`voxdub_samples_${id}`);
-    let audioToPlay = AUDIO_URL;
-    if (savedSamples) {
-      const samplesArray = JSON.parse(savedSamples);
-      if (samplesArray.length > 0) audioToPlay = samplesArray[0].url;
-    }
     if (playingId === id) {
       currentAudio?.pause();
       setPlayingId(null);
     } else {
       if (currentAudio) currentAudio.pause();
-      const newAudio = new Audio(audioToPlay);
+      const newAudio = new Audio(AUDIO_URL);
       newAudio.play().catch(() => toast.error("العينة غير متوفرة"));
       setCurrentAudio(newAudio);
       setPlayingId(id);
@@ -112,7 +122,7 @@ export function Landing() {
     }
   };
 
-  const iconMap: any = { Mic: Mic, Headphones: Headphones, FileCheck: FileCheck };
+  const iconMap: any = { Mic, Headphones, FileCheck };
 
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
@@ -128,7 +138,6 @@ export function Landing() {
         .highlight-full { background-color: ${themeColor}; color: white; padding: 8px 25px; border-radius: 12px; display: inline-block; transform: rotate(-1deg); }
         .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; font-family: 'Cairo', sans-serif !important; }
         .pricing-input { border: 1px dashed ${themeColor}44; color: black; font-family: 'Cairo', sans-serif !important; }
-        .about-icon-bg { background-color: ${themeColor}22; }
         .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; border-radius: 2rem; padding: 2.5rem; width: 90%; max-width: 400px; text-align: center; direction: rtl; }
         .login-input { width: 100%; border: 2px solid #e5e7eb; border-radius: 1rem; padding: 12px 16px; font-size: 16px; margin-bottom: 12px; text-align: right; font-family: 'Cairo', sans-serif !important; outline: none; box-sizing: border-box; }
@@ -142,19 +151,11 @@ export function Landing() {
       {showLoginModal && (
         <div
           className="login-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowLoginModal(false);
-              setLoginError('');
-            }
-          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}
         >
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
+              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
@@ -195,10 +196,7 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button
-                onClick={saveAllChanges}
-                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
-              >
+              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
@@ -222,7 +220,10 @@ export function Landing() {
                 واجهة المعلق
               </button>
               <button
-                onClick={() => setUserRole('visitor')}
+                onClick={() => {
+                  setUserRole('visitor');
+                  localStorage.setItem('voxdub_user_role', 'visitor');
+                }}
                 className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}
               >
                 زائر
@@ -462,4 +463,3 @@ export function Landing() {
     </div>
   );
 }
-```
