@@ -12,7 +12,7 @@ import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 
 const initialArtists = [
-  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", defaultAudio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن (الحكواتي)", rating: 5.0, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", defaultAudio: "/audio/mustapha.mp3" },
   { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg", defaultAudio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
   { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg", defaultAudio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
   { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg", defaultAudio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
@@ -68,13 +68,12 @@ export function Landing() {
     else {
       if (currentAudio) currentAudio.pause();
       const newAudio = new Audio(audioToPlay);
-      newAudio.play().catch(() => toast.error("العينة غير متوفرة"));
+      newAudio.play().catch(() => toast.error("العينة غير متوفرة حالياً"));
       setCurrentAudio(newAudio); setPlayingId(id);
       newAudio.onended = () => setPlayingId(null);
     }
   };
 
-  // خريطة الأيقونات لقسم "لماذا VoxDub"
   const iconMap: any = { Mic: Mic, Headphones: Headphones, FileCheck: FileCheck };
 
   return (
@@ -85,7 +84,8 @@ export function Landing() {
         .text-vox-primary { color: ${themeColor} !important; }
         .bg-vox-primary { background-color: ${themeColor} !important; }
         .border-vox-primary { border-color: ${themeColor} !important; }
-.highlight-full { background-color: ${themeColor}; color: white; padding: 8px 25px; border-radius: 12px; display: inline-block; transform: rotate(-1deg); }        .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; }
+        .highlight-full { background-color: ${themeColor}; color: white; padding: 8px 25px; border-radius: 12px; display: inline-block; transform: rotate(-1deg); }
+        .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; }
         .pricing-input { border: 1px dashed ${themeColor}44; color: black; }
         .about-icon-bg { background-color: ${themeColor}22; }
       `}</style>
@@ -114,10 +114,11 @@ export function Landing() {
 
       {/* Hero */}
       <section className="pt-32 pb-40 px-4 text-center">
-        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight" style={{fontFamily: 'Cairo, sans-serif'}}>اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
+        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
         <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.</p>
         <div className="flex justify-center gap-6">
-<a href="#artists" style={{fontFamily: 'Cairo, sans-serif'}} className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>          <a href="#pricing" style={{fontFamily: 'Cairo, sans-serif'}} className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
+          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>
+          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
         </div>
       </section>
 
@@ -151,8 +152,8 @@ export function Landing() {
                       <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8" style={{backgroundColor: themeColor + '33'}}>
                         <IconComponent size={52} style={{color: themeColor}} />
                       </div>
-                      <h3 className="text-3xl font-black mb-4 text-white" style={{fontFamily: 'Cairo, sans-serif'}}>{item.t}</h3>
-                      <p className="text-stone-300 font-bold leading-relaxed text-xl" style={{fontFamily: 'Cairo, sans-serif'}}>{item.d}</p>
+                      <h3 className="text-3xl font-black mb-4 text-white">{item.t}</h3>
+                      <p className="text-stone-300 font-bold leading-relaxed text-xl">{item.d}</p>
                     </>
                   )}
                 </div>
@@ -166,28 +167,26 @@ export function Landing() {
       <section id="artists" className="py-32 bg-stone-50 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
-          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين</p>
+          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المبدعين</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-right">
             {initialArtists.map((artist) => (
               <div key={artist.id} className="bg-vox-primary rounded-[4rem] p-10 shadow-2xl relative overflow-hidden group transition-all hover:-translate-y-4 text-white">
-                {/* Header Card */}
                 <div className="flex justify-between items-start mb-8 relative z-10">
                   <Award size={32} className="opacity-50" />
                   <div>
                     <h3 className="text-3xl font-black leading-none">{artist.name}</h3>
                     <p className="font-bold opacity-80 mt-2">{artist.role}</p>
                     <div className="flex items-center justify-end gap-1 mt-3">
-                       <span className="text-xl font-black">{artist.id === 4 ? "4.7" : (artist.id === 6 ? "5" : "4.9")}</span>
+                       <span className="text-xl font-black">{artist.rating}</span>
                        <Star size={18} className="fill-white text-white" />
                     </div>
                   </div>
                 </div>
 
-                {/* Inner Info Card */}
                 <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner">
                   <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200">
-                     <img src={artist.image} className="w-full h-full object-cover" alt="" />
+                     <img src={artist.image} className="w-full h-full object-cover" alt={artist.name} />
                   </div>
                   <div className="text-right text-white/90 text-sm font-bold space-y-1">
                     <p>الخبرة: <span className="text-white">{artist.experience}</span></p>
@@ -195,7 +194,6 @@ export function Landing() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="space-y-4 relative z-10">
                   <button 
                     onClick={() => toggleAudio(artist.id, artist.defaultAudio)} 
@@ -237,7 +235,7 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Pricing (Editable) */}
+      {/* Pricing */}
       <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا الإبداعية</h2>
@@ -276,7 +274,12 @@ export function Landing() {
       </section>
 
       {/* Order & Footer */}
-      <section id="contact" className="py-32 bg-white"><div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden"><OrderForm /></div></section>
+      <section id="contact" className="py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden">
+          <OrderForm />
+        </div>
+      </section>
+      
       <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
         <div className="text-4xl font-black mb-8 italic text-white">Vox<span className="text-vox-primary">Dub</span></div>
         <p className="text-stone-600 font-bold italic">إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio</p>
