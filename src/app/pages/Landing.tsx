@@ -1,4 +1,3 @@
-```tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -95,7 +94,6 @@ export function Landing() {
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
         *, *::before, *::after, body, input, textarea, button, select {
           font-family: 'Cairo', sans-serif !important;
         }
@@ -434,4 +432,3 @@ export function Landing() {
     </div>
   );
 }
-```
