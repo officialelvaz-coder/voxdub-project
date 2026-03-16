@@ -7,7 +7,7 @@ import { Progress } from '../components/ui/progress';
 import { 
   FolderPlus, Mic, TrendingUp, Clock, DollarSign, Users, Star, 
   Settings, Bell, Truck, Handshake, PieChart, FolderKanban, Home, LogOut,
-  PlusCircle // تم الإصلاح هنا
+  PlusCircle
 } from 'lucide-react';
 import { projects, stats } from '../data/mockData';
 import { toast } from 'sonner';
@@ -41,7 +41,7 @@ export function Dashboard() {
   const statusColors = {
     draft: 'bg-stone-200 text-stone-800',
     casting: 'bg-blue-100 text-blue-800',
-    recording: 'bg-vox-light text-vox-primary', 
+    recording: 'bg-vox-light text-vox-primary',
     mixing: 'bg-orange-100 text-orange-800',
     review: 'bg-yellow-100 text-yellow-800',
     completed: 'bg-green-100 text-green-800',
@@ -49,13 +49,19 @@ export function Dashboard() {
   };
 
   const statusLabels = {
-    draft: 'مسودة', casting: 'اختيار الصوت', recording: 'تسجيل', 
+    draft: 'مسودة', casting: 'اختيار الصوت', recording: 'تسجيل',
     mixing: 'مكساج', review: 'مراجعة', completed: 'مكتمل', delivered: 'تم التسليم'
   };
 
   const handleLogout = () => {
     localStorage.removeItem('voxdub_user_role');
     toast.info("تم تسجيل الخروج بنجاح");
+    navigate('/');
+  };
+
+  // ✅ الرجوع للرئيسية مع الحفاظ على role=admin
+  const handleGoHome = () => {
+    localStorage.setItem('voxdub_user_role', 'admin');
     navigate('/');
   };
 
@@ -69,7 +75,7 @@ export function Dashboard() {
         .progress-fill { background-color: ${themeColor} !important; }
       `}</style>
 
-      {/* Header الترحيبي */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[3rem] shadow-sm border border-stone-100 gap-6">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 bg-vox-primary rounded-[2rem] flex items-center justify-center text-white shadow-2xl">
@@ -81,12 +87,24 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => navigate('/')} variant="outline" className="rounded-2xl font-black h-12 border-stone-200"> <Home className="ml-2" size={18}/> الرئيسية</Button>
-          <Button onClick={handleLogout} className="rounded-2xl font-black h-12 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border-none shadow-none"> <LogOut className="ml-2" size={18}/> خروج</Button>
+          {/* ✅ زر الرئيسية يحفظ role=admin قبل الانتقال */}
+          <Button
+            onClick={handleGoHome}
+            variant="outline"
+            className="rounded-2xl font-black h-12 border-stone-200"
+          >
+            <Home className="ml-2" size={18} /> الرئيسية
+          </Button>
+          <Button
+            onClick={handleLogout}
+            className="rounded-2xl font-black h-12 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border-none shadow-none"
+          >
+            <LogOut className="ml-2" size={18} /> خروج
+          </Button>
         </div>
       </div>
 
-      {/* الأيقونات المركزية */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {quickActions.map((action) => (
           <button
@@ -94,7 +112,10 @@ export function Dashboard() {
             onClick={() => navigate(action.path)}
             className="bg-white p-4 rounded-[2rem] shadow-sm border border-stone-50 flex flex-col items-center gap-3 hover:shadow-xl hover:-translate-y-1 transition-all group"
           >
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110" style={{backgroundColor: action.color}}>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
+              style={{ backgroundColor: action.color }}
+            >
               <action.icon size={24} />
             </div>
             <span className="text-[10px] font-black text-stone-600 truncate w-full px-1">{action.label}</span>
@@ -130,13 +151,24 @@ export function Dashboard() {
         <Card className="lg:col-span-2 border-none shadow-sm rounded-[3rem] bg-white p-4">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-black text-2xl">آخر العمليات</CardTitle>
-            <Button onClick={() => navigate('/dashboard/projects')} variant="ghost" className="text-vox-primary font-black hover:bg-vox-light">كل المشاريع ←</Button>
+            <Button
+              onClick={() => navigate('/dashboard/projects')}
+              variant="ghost"
+              className="text-vox-primary font-black hover:bg-vox-light"
+            >
+              كل المشاريع ←
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {recentProjects.map((project) => (
-              <div key={project.id} className="p-6 rounded-[2rem] border border-stone-50 bg-stone-50/30 hover:bg-white hover:shadow-xl transition-all group">
+              <div
+                key={project.id}
+                className="p-6 rounded-[2rem] border border-stone-50 bg-stone-50/30 hover:bg-white hover:shadow-xl transition-all group"
+              >
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-black text-lg text-stone-900 group-hover:text-vox-primary transition-colors">{project.title}</h4>
+                  <h4 className="font-black text-lg text-stone-900 group-hover:text-vox-primary transition-colors">
+                    {project.title}
+                  </h4>
                   <Badge className={`${statusColors[project.status as keyof typeof statusColors]} px-4 py-1 rounded-full font-black text-[10px]`}>
                     {statusLabels[project.status as keyof typeof statusLabels]}
                   </Badge>
