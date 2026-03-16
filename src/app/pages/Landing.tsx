@@ -1,3 +1,4 @@
+```tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -122,7 +123,10 @@ export function Landing() {
         >
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button
+                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
@@ -163,7 +167,10 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
+              <Button
+                onClick={saveAllChanges}
+                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
+              >
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
@@ -427,3 +434,4 @@ export function Landing() {
     </div>
   );
 }
+```
