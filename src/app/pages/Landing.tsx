@@ -113,7 +113,6 @@ export function Landing() {
         .login-error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: 700; }
       `}</style>
 
-      {/* نافذة تسجيل الدخول */}
       {showLoginModal && (
         <div
           className="login-overlay"
@@ -156,7 +155,6 @@ export function Landing() {
         </div>
       )}
 
-      {/* Nav */}
       <nav className="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-stone-100 h-24 flex items-center shadow-sm">
         <div className="max-w-7xl mx-auto px-4 w-full flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -202,7 +200,6 @@ export function Landing() {
         </div>
       </nav>
 
-      {/* Hero */}
       <section className="pt-32 pb-40 px-4 text-center">
         <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">
           اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى
@@ -220,7 +217,6 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Why VoxDub */}
       <section id="about" className="py-32 bg-stone-900 text-white rounded-[4rem] mx-4 overflow-hidden text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-16 italic text-white">لماذا VoxDub؟</h2>
@@ -261,7 +257,6 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Artists Section */}
       <section id="artists" className="py-32 bg-stone-50 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
@@ -299,7 +294,7 @@ export function Landing() {
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
-                  
+                  <a
                     href={`/dashboard/artists/${artist.id}`}
                     className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
                   >
@@ -312,7 +307,6 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Workflow */}
       <section id="workflow" className="py-32 bg-white text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-24 italic text-stone-900">
@@ -337,7 +331,6 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">
@@ -401,7 +394,7 @@ export function Landing() {
                     </ul>
                   </>
                 )}
-                
+                <a
                   href="#contact"
                   className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}
                 >
@@ -413,14 +406,12 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Order */}
       <section id="contact" className="py-32 bg-white">
         <div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden">
           <OrderForm />
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
         <div className="text-4xl font-black mb-8 italic text-white">
           Vox<span className="text-vox-primary">Dub</span>
