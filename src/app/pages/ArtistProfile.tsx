@@ -9,7 +9,7 @@ import {
 import { toast } from 'sonner';
 
 const officialArtists = [
-  { id: "1", name: "مصطفى جغلال", role: "صوت احترافي ومتزن", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", isArchived: false },
+  { id: "1", name: "مصطفى جغلال", role: "صوت احترافي ومتزن (الحكواتي)", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", isArchived: false },
   { id: "2", name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", isArchived: false },
   { id: "3", name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", isArchived: false },
   { id: "4", name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", isArchived: false },
@@ -22,11 +22,9 @@ export function ArtistProfile() {
   const navigate = useNavigate();
   const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
 
-  // 🟢 نظام الصلاحيات
-  const userRole = localStorage.getItem('voxdub_user_role') || 'admin';
-  const loggedInArtistId = localStorage.getItem('voxdub_logged_in_id') || "1"; // نفترض أنك المعلق المسجل حالياً
-  
-  // يحق التعديل للمديرة (لميس) على كل الملفات، أو للمعلق على ملفه فقط
+  // 🟢 استخراج الصلاحية بشكل صحيح حتى للمديرة لميس
+  const userRole = localStorage.getItem('voxdub_user_role') || 'visitor';
+  const loggedInArtistId = localStorage.getItem('voxdub_logged_in_id') || "1";
   const canEdit = userRole === 'admin' || (userRole === 'artist' && loggedInArtistId === String(id));
 
   const [profile, setProfile] = useState(() => {
@@ -97,13 +95,17 @@ export function ArtistProfile() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-20 text-right px-4 text-stone-900" dir="rtl">
-      <style>{`.bg-vox-primary { background-color: ${themeColor} !important; } .text-vox-primary { color: ${themeColor} !important; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        *, body, div, p, h1, h2, h3, span, button, input, textarea { font-family: 'Cairo', sans-serif !important; }
+        .bg-vox-primary { background-color: ${themeColor} !important; } 
+        .text-vox-primary { color: ${themeColor} !important; }
+      `}</style>
 
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 mt-6">
         <Button onClick={() => navigate('/dashboard/artists')} variant="ghost" className="font-black text-stone-400 hover:text-vox-primary"><Home className="ml-2" /> العودة للقائمة</Button>
         
-        {/* 🟢 زر الحفظ يظهر فقط للمديرة لميس أو لصاحب الملف */}
         {canEdit && (
           <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black border-none shadow-xl hover:opacity-90 transition-all">
             <Save className="ml-2" /> حفظ التغييرات
@@ -115,10 +117,9 @@ export function ArtistProfile() {
         {/* Sidebar */}
         <div className="space-y-6">
           <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center relative">
-            {/* إشعار حالة الصلاحية */}
             {canEdit && (
               <span className="absolute top-6 right-6 bg-green-100 text-green-700 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1">
-                <ShieldCheck size={14} /> وضع التعديل
+                <ShieldCheck size={14} /> وضع التعديل متاح
               </span>
             )}
             
@@ -126,7 +127,6 @@ export function ArtistProfile() {
                <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-stone-300 bg-stone-100">${profile.name?.charAt(0)}</div>`; }} />
             </div>
             
-            {/* 🟢 عرض الاسم: حقل إدخال للمديرة/المعلق، ونص ثابت للزائر */}
             {canEdit ? (
               <input 
                 value={profile.name}
@@ -138,7 +138,6 @@ export function ArtistProfile() {
               <h2 className="text-2xl font-black mb-2">{profile.name}</h2>
             )}
             
-            {/* 🟢 عرض الدور: حقل إدخال للمديرة/المعلق، ونص ثابت للزائر */}
             {canEdit ? (
               <input 
                 value={profile.role}
@@ -175,7 +174,6 @@ export function ArtistProfile() {
             <div className="space-y-3">
               <h3 className="text-lg font-black flex items-center gap-2"><User className="text-vox-primary" /> النبذة التعريفية</h3>
               
-              {/* 🟢 عرض النبذة: نص قابل للتعديل لمن يملك الصلاحية، ونص ثابت للقراءة للزائر */}
               {canEdit ? (
                 <Textarea 
                   value={profile.bio} 
@@ -193,7 +191,6 @@ export function ArtistProfile() {
             <div className="space-y-6">
               <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
               
-              {/* 🟢 زر رفع العينات يظهر فقط لمن يملك الصلاحية */}
               {canEdit && (
                 <>
                   <div className="bg-purple-50 text-purple-700 p-4 rounded-2xl text-sm font-bold border border-purple-100 flex items-center gap-2 mb-2">
@@ -215,7 +212,6 @@ export function ArtistProfile() {
                       </Button>
                       <span className="font-black truncate max-w-[200px] md:max-w-md">{s.title}</span>
                     </div>
-                    {/* 🟢 زر الحذف يظهر فقط لمن يملك الصلاحية */}
                     {canEdit && (
                       <button onClick={() => {
                         const updated = samples.filter(x => x.id !== s.id);
