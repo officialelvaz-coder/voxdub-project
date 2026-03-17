@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
 
-const officialArtists = [
-  { id: "1", name: "مصننننننننننطفى جغلال" },
+// نترك هذه القائمة فارغة أو كاحتياط فقط في حال كانت الذاكرة فارغة تماماً
+const defaultArtists = [
+  { id: "1", name: "مصطفى جغلال" },
   { id: "2", name: "لميس حميمي" },
   { id: "3", name: "بلهادي محمد إسلام" },
   { id: "4", name: "أحمد حاج إسماعيل" }
@@ -19,29 +20,30 @@ export function Login() {
     localStorage.removeItem('voxdub_user_role');
     localStorage.removeItem('voxdub_logged_artist_id');
     
-    // جلب البيانات وتحديث القائمة بـ 4 فقط بدون أي تكرار
+    // 🟢 السر هنا: نجلب البيانات الحية التي تضيفها أنت من لوحة التحكم
     const saved = localStorage.getItem('voxdub_artists_v2');
-    let combined = saved ? JSON.parse(saved) : [...officialArtists];
-    
-    // التأكد من أخذ أول 4 فقط وتجنب أي حساب "مدير" إذا تسلل للقائمة
-    const finalSelection = combined
-      .filter((a: any) => a.name !== "مديرة الموقع") 
+    let allArtists = saved ? JSON.parse(saved) : defaultArtists;
+
+    // 🟢 نأخذ أول 4 معلقين موجودين في الذاكرة حالياً (سواء قدامى أو جدد)
+    // ونستبعد أي حساب يحمل اسم "مديرة الموقع" إذا وجد
+    const topFour = allArtists
+      .filter((a: any) => a.name !== "مديرة الموقع" && a.name !== "Admin")
       .slice(0, 4);
 
-    setArtistsList(finalSelection);
+    setArtistsList(topFour);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // دخول المديرة: إذا لم يتم اختيار أي اسم من القائمة وكانت كلمة المرور صحيحة
+    // دخول المديرة: بدون اختيار اسم + كلمة سر المديرة
     if (!selectedArtist && password === 'admin123') {
       localStorage.setItem('voxdub_user_role', 'admin');
       window.location.href = '/dashboard/artists';
       return;
     }
 
-    // دخول المعلق: إذا اختار اسماً وكلمة المرور صحيحة
+    // دخول المعلق: اختيار اسم + كلمة سر المعلق
     if (selectedArtist && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
       localStorage.setItem('voxdub_logged_artist_id', selectedArtist);
@@ -49,7 +51,7 @@ export function Login() {
       return;
     }
 
-    alert('خطأ في البيانات: تأكد من اختيار الحساب الصحيح أو كلمة المرور');
+    alert('تأكد من اختيار الاسم الصحيح وكلمة المرور');
   };
 
   return (
@@ -60,24 +62,24 @@ export function Login() {
             <Mic2 size={40} />
           </div>
           <h1 className="text-3xl font-black text-stone-900 italic">Voxdub <span style={{ color: themeColor }}>Portal</span></h1>
-          <p className="text-stone-400 font-bold mt-2 text-center">قم باختيار حسابك للولوج للمنصة</p>
+          <p className="text-stone-400 font-bold mt-2">اختر حسابك للبدء</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">نوع الحساب</label>
+            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">الحساب</label>
             <select
-              key={artistsList.length}
               value={selectedArtist}
               onChange={(e) => setSelectedArtist(e.target.value)}
               className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none font-bold text-stone-600 bg-stone-50 transition-all"
               style={{ '--tw-ring-color': themeColor } as any}
             >
-              {/* خيار المديرة هو الافتراضي ولا يوجد لها حساب ضمن الأسماء */}
-              <option value="">دخول كمدير (Admin)</option>
+              {/* خيار المديرة مخفي برمجياً (يدخل عبر كلمة السر فقط دون اختيار اسم) */}
+              <option value="">دخول كمدير (المديرة لميس)</option>
+              
               {artistsList.map((artist) => (
                 <option key={artist.id} value={artist.id}>
-                  {artist.name} (معلق)
+                  {artist.name}
                 </option>
               ))}
             </select>
@@ -98,16 +100,12 @@ export function Login() {
 
           <button
             type="submit"
-            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg active:scale-95"
+            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-stone-200 active:scale-95"
             style={{ backgroundColor: themeColor }}
           >
             <LogIn size={20} />
-            تأكيد الدخول
+            دخول
           </button>
-          
-          <p className="text-[10px] text-center text-stone-300 font-bold">
-            ملاحظة: إذا كنت مديراً، اترك خيار الحساب فارغاً وأدخل كلمة المرور مباشرة.
-          </p>
         </form>
       </div>
     </div>
