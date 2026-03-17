@@ -1,247 +1,375 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Textarea } from '../components/ui/textarea';
+import { useNavigate } from 'react-router-dom';
 import { 
-  UploadCloud, Save, Home, Play, Pause, Trash2, 
-  User, Music, Star, CheckCircle2, Clock, FolderKanban, ShieldCheck
+  Mic2, Play, Pause, Award, Star, Mic, 
+  CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
+import { OrderForm } from '../components/OrderForm';
+import { useAuth } from '../context/AuthContext';
 
-const officialArtists = [
-  { id: "1", name: "مصطفى جغلال", role: "صوت احترافي ومتزن (الحكواتي)", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", isArchived: false },
-  { id: "2", name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", isArchived: false },
-  { id: "3", name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", isArchived: false },
-  { id: "4", name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", isArchived: false },
-  { id: "5", name: "منال إبراهيمي", role: "صوت درامي ومؤثر", gender: "أنثى", experience: "5 سنوات", image: "/images/manal.jpg", language: "عربي فصحى", isArchived: false },
-  { id: "6", name: "آدم حمدوني", role: "صوت دافئ وجذاب", gender: "ذكر", experience: "10 سنوات", image: "/images/adam.jpg", language: "عربي فصحى وعامية", isArchived: false }
+const audioMap: Record<number, string> = {
+  1: "/audio/mustapha.mp3",
+  2: "/audio/lamis.mp3",
+  3: "/audio/islam.mp3",
+  4: "/audio/ahmed.mp3",
+  5: "/audio/manel.mp3",
+  6: "/audio/adem.mp3",
+};
+
+const initialArtists = [
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", isNew: false, audio: "" },
+  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg", isNew: false, audio: "" },
+  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg", isNew: false, audio: "" },
+  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg", isNew: false, audio: "" },
+  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", rating: 4.9, experience: "5 سنوات", language: "عربي فصحى", image: "/images/manal.jpg", isNew: false, audio: "" },
+  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
 ];
 
-export function ArtistProfile() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
+const getMergedArtists = () => {
+  const saved = localStorage.getItem('voxdub_artists_v2');
+  const savedArtists = saved ? JSON.parse(saved) : [];
 
-  // 🟢 استخراج الصلاحية بشكل صحيح حتى للمديرة لميس
-  const userRole = localStorage.getItem('voxdub_user_role') || 'visitor';
-  const loggedInArtistId = localStorage.getItem('voxdub_logged_in_id') || "1";
-  const canEdit = userRole === 'admin' || (userRole === 'artist' && loggedInArtistId === String(id));
+  const combinedMap = new Map();
 
-  const [profile, setProfile] = useState(() => {
-    const savedArtists = localStorage.getItem('voxdub_artists_v2');
-    const parsedArtists = savedArtists ? JSON.parse(savedArtists) : [];
-    const localArtist = parsedArtists.find((a: any) => String(a.id) === String(id));
-    const officialArtist = officialArtists.find(a => String(a.id) === String(id));
-    
-    const foundData = localArtist || officialArtist || officialArtists[0];
-    return { 
-      ...foundData, 
-      bio: foundData.bio || (id === "1" ? "معلق صوتي محترف، رائد فن الحكي والتعليق الإبداعي." : "مؤدي صوتي متميز في منصة VoxDub.")
-    };
+  initialArtists.forEach(a => combinedMap.set(String(a.id), a));
+
+  savedArtists.forEach((a: any) => {
+    const existing = combinedMap.get(String(a.id));
+    if (existing) {
+      combinedMap.set(String(a.id), { ...existing, ...a });
+    } else {
+      combinedMap.set(String(a.id), {
+        id: a.id,
+        name: a.name,
+        role: a.role || 'معلق صوتي',
+        rating: a.rating || 5.0,
+        experience: a.experience || 'غير محدد',
+        language: a.language || 'عربية فصحى',
+        image: a.image || '',
+        audio: a.audio || `/audio/${a.slug || 'mustapha'}.mp3`,
+        isNew: true,
+        isArchived: a.isArchived || false
+      });
+    }
   });
 
-  const [samples, setSamples] = useState(() => {
-    const saved = localStorage.getItem(`voxdub_samples_${id}`);
-    const defaultAudioUrl = "/audio/mustapha.mp3";
+  return Array.from(combinedMap.values())
+    .filter((a: any) => !a.isArchived)
+    .sort((a: any, b: any) => Number(a.id) - Number(b.id));
+};
+
+export function Landing() {
+  const navigate = useNavigate();
+  const { userRole, setUserRole, login } = useAuth();
+
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
+  const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
+  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  
+  const [allArtists, setAllArtists] = useState(getMergedArtists);
+
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('voxdub_theme', themeColor);
+  }, [themeColor]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setAllArtists(getMergedArtists());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const handleAdminLogin = () => {
+    const success = login(loginUser, loginPass);
+    if (success) {
+      setShowLoginModal(false);
+      setLoginUser('');
+      setLoginPass('');
+      setLoginError('');
+      navigate('/dashboard');
+    } else {
+      setLoginError('اسم المستخدم أو كلمة السر غير صحيحة');
+    }
+  };
+
+  const [aboutData, setAboutData] = useState(() => {
+    const saved = localStorage.getItem('voxdub_about_content');
     return saved ? JSON.parse(saved) : [
-      { id: 1, title: `عينة العرض الرئيسية - ${profile.name}`, url: defaultAudioUrl }
+      { t: "أصوات متنوعة", d: "أكثر من 50 معلق صوتي محترف بأساليب وأصوات متنوعة", icon: "Mic" },
+      { t: "جودة عالية", d: "تسجيلات بجودة استوديو احترافية مع ضمان الجودة", icon: "Headphones" },
+      { t: "خدمات شاملة", d: "باقات متكاملة تشمل الكتابة والتدقيق اللغوي", icon: "FileCheck" }
     ];
   });
 
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(null);
+  const [pricingData, setPricingData] = useState(() => {
+    const saved = localStorage.getItem('voxdub_pricing_plans');
+    return saved ? JSON.parse(saved) : [
+      { t: "باقة التعليق الصوتي", d: "مثالية للمشاريع البسيطة", p: "5000", u: "دينار", f: ["تعليق صوتي احترافي", "جودة تسجيل HD", "تسليم خلال 3 أيام", "مراجعة واحدة مجانية"] },
+      { t: "باقة التعليق والتدقيق", d: "للمحتوى الاحترافي", p: "8000", u: "دينار", f: ["كل مميزات الباقة الأولى", "تدقيق لغوي للنص", "تصحيح الأخطاء النحوية", "تحسين الصياغة"], popular: true },
+      { t: "باقة كاملة المحتوى", d: "حل شامل ومتكامل", p: "13000", u: "دينار", f: ["كل مميزات الباقتين السابقتين", "كتابة النص من الصفر", "بحث وتطوير المحتوى", "كتابة إبداعية"] }
+    ];
+  });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64Audio = event.target?.result as string;
-        const newSample = { id: Date.now(), title: file.name.split('.')[0], url: base64Audio };
-        const updated = [newSample, ...samples];
-        setSamples(updated);
-        localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-        toast.success("تم حفظ العينة بنجاح");
-      };
-      reader.readAsDataURL(file);
-    }
+  const saveAllChanges = () => {
+    localStorage.setItem('voxdub_about_content', JSON.stringify(aboutData));
+    localStorage.setItem('voxdub_pricing_plans', JSON.stringify(pricingData));
+    toast.success("تم حفظ تعديلات الواجهة!");
   };
 
-  const togglePlay = (sid: number, url: string) => {
-    if (playingId === sid) { audioInstance?.pause(); setPlayingId(null); }
-    else {
-      if (audioInstance) audioInstance.pause();
-      const audio = new Audio(url);
-      audio.play().catch(() => toast.error("عذراً، العينة غير متوفرة حالياً"));
-      setAudioInstance(audio); setPlayingId(sid);
-      audio.onended = () => setPlayingId(null);
-    }
-  };
+  const toggleAudio = (artist: any) => {
+    const id = artist.id;
+    const audioUrl = artist.audio || audioMap[id] || "/audio/mustapha.mp3";
 
-  const handleSaveProfile = () => {
-    const savedArtists = localStorage.getItem('voxdub_artists_v2');
-    let artistsArray = savedArtists ? JSON.parse(savedArtists) : [...officialArtists];
-    
-    const index = artistsArray.findIndex((a: any) => String(a.id) === String(id));
-    if (index >= 0) {
-      artistsArray[index] = profile;
+    if (playingId === id) {
+      currentAudio?.pause();
+      setPlayingId(null);
     } else {
-      artistsArray.push(profile);
+      if (currentAudio) currentAudio.pause();
+      const newAudio = new Audio(audioUrl);
+      newAudio.play().catch(() => toast.error("العينة غير متوفرة"));
+      setCurrentAudio(newAudio);
+      setPlayingId(id);
+      newAudio.onended = () => setPlayingId(null);
     }
-    
-    localStorage.setItem('voxdub_artists_v2', JSON.stringify(artistsArray));
-    toast.success("تم حفظ التعديلات بنجاح!");
   };
+
+  const iconMap: any = { Mic, Headphones, FileCheck };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 pb-20 text-right px-4 text-stone-900" dir="rtl">
+    <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        *, body, div, p, h1, h2, h3, span, button, input, textarea { font-family: 'Cairo', sans-serif !important; }
-        .bg-vox-primary { background-color: ${themeColor} !important; } 
+        *, *::before, *::after, body, input, textarea, button, select {
+          font-family: 'Cairo', sans-serif !important;
+        }
+        html { scroll-behavior: smooth; }
         .text-vox-primary { color: ${themeColor} !important; }
+        .bg-vox-primary { background-color: ${themeColor} !important; }
+        .border-vox-primary { border-color: ${themeColor} !important; }
+        .highlight-full { background-color: ${themeColor}; color: white; padding: 8px 25px; border-radius: 12px; display: inline-block; transform: rotate(-1deg); }
+        .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; font-family: 'Cairo', sans-serif !important; }
+        .pricing-input { border: 1px dashed ${themeColor}44; color: black; font-family: 'Cairo', sans-serif !important; }
+        .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; border-radius: 2rem; padding: 2.5rem; width: 90%; max-width: 400px; text-align: center; direction: rtl; }
+        .login-input { width: 100%; border: 2px solid #e5e7eb; border-radius: 1rem; padding: 12px 16px; font-size: 16px; margin-bottom: 12px; text-align: right; font-family: 'Cairo', sans-serif !important; outline: none; box-sizing: border-box; }
+        .login-input:focus { border-color: ${themeColor}; }
+        .login-btn { width: 100%; background: ${themeColor}; color: white; border: none; border-radius: 1rem; padding: 14px; font-size: 18px; font-weight: 900; cursor: pointer; font-family: 'Cairo', sans-serif !important; }
+        .login-btn:hover { opacity: 0.9; }
+        .login-error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: 700; }
       `}</style>
 
-      {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 mt-6">
-        <Button onClick={() => navigate('/dashboard/artists')} variant="ghost" className="font-black text-stone-400 hover:text-vox-primary"><Home className="ml-2" /> العودة للقائمة</Button>
-        
-        {canEdit && (
-          <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black border-none shadow-xl hover:opacity-90 transition-all">
-            <Save className="ml-2" /> حفظ التغييرات
-          </Button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center relative">
-            {canEdit && (
-              <span className="absolute top-6 right-6 bg-green-100 text-green-700 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1">
-                <ShieldCheck size={14} /> وضع التعديل متاح
-              </span>
-            )}
-            
-            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner mt-4">
-               <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-stone-300 bg-stone-100">${profile.name?.charAt(0)}</div>`; }} />
+      {showLoginModal && (
+        <div className="login-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}>
+          <div className="login-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={22} color="#9ca3af" />
+              </button>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>Vox<span style={{ color: themeColor }}>Dub</span></div>
+                <p style={{ color: '#6b7280', fontSize: '14px', fontWeight: 700, margin: '4px 0 0' }}>دخول لوحة الإدارة</p>
+              </div>
             </div>
-            
-            {canEdit ? (
-              <input 
-                value={profile.name}
-                onChange={(e) => setProfile({...profile, name: e.target.value})}
-                className="text-2xl font-black text-center bg-transparent border-b-2 border-dashed border-stone-200 focus:border-stone-400 outline-none w-full max-w-[200px] mb-2 px-2 py-1 transition-colors block mx-auto"
-                placeholder="اسم المعلق"
-              />
-            ) : (
-              <h2 className="text-2xl font-black mb-2">{profile.name}</h2>
-            )}
-            
-            {canEdit ? (
-              <input 
-                value={profile.role}
-                onChange={(e) => setProfile({...profile, role: e.target.value})}
-                className="font-bold italic text-center bg-transparent border-b-2 border-dashed border-stone-200 outline-none w-full max-w-[250px] px-2 py-1 transition-colors block mx-auto"
-                style={{ color: themeColor, borderBottomColor: `${themeColor}40` }}
-                placeholder="الدور أو الصفة"
-              />
-            ) : (
-              <p className="font-bold italic" style={{ color: themeColor }}>{profile.role}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-             {[
-               { label: "مشاريع جديدة", count: id === "1" ? 5 : 2, icon: FolderKanban, color: "#0ea5e9" },
-               { label: "قيد الإنجاز", count: id === "1" ? 3 : 1, icon: Clock, color: "#f59e0b" },
-               { label: "مشاريع مكتملة", count: id === "1" ? 124 : 45, icon: CheckCircle2, color: "#10b981" }
-             ].map((item, i) => (
-               <div key={i} className="bg-white p-6 rounded-[2rem] border border-stone-100 flex items-center justify-between shadow-sm">
-                 <div className="flex items-center gap-4">
-                   <div className="p-3 rounded-2xl text-white" style={{backgroundColor: item.color}}><item.icon size={20}/></div>
-                   <span className="font-black">{item.label}</span>
-                 </div>
-                 <span className="text-2xl font-black">{item.count}</span>
-               </div>
-             ))}
+            <input className="login-input" type="text" placeholder="اسم المستخدم" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
+            <input className="login-input" type="password" placeholder="كلمة السر" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
+            {loginError && <p className="login-error">{loginError}</p>}
+            <button className="login-btn" onClick={handleAdminLogin}>دخول</button>
           </div>
         </div>
+      )}
 
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-stone-100 space-y-8">
-            <div className="space-y-3">
-              <h3 className="text-lg font-black flex items-center gap-2"><User className="text-vox-primary" /> النبذة التعريفية</h3>
-              
-              {canEdit ? (
-                <Textarea 
-                  value={profile.bio} 
-                  onChange={(e)=>setProfile({...profile, bio: e.target.value})} 
-                  className="bg-stone-50 border-none rounded-2xl p-6 font-bold min-h-[120px] outline-none resize-none focus:ring-2 ring-stone-200 transition-all text-stone-700 leading-relaxed" 
-                  placeholder="اكتب نبذة عن المعلق هنا..."
-                />
-              ) : (
-                <p className="bg-stone-50 border border-stone-100 rounded-2xl p-6 font-bold min-h-[120px] text-stone-700 leading-relaxed">
-                  {profile.bio || "لا توجد نبذة تعريفية مسجلة بعد."}
-                </p>
-              )}
+      <nav className="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-stone-100 h-24 flex items-center shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 w-full flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Mic2 className="text-vox-primary w-8 h-8" />
+            <span className="text-3xl font-black italic text-stone-900">Vox<span className="text-vox-primary">Dub</span></span>
+          </div>
+          <div className="flex items-center gap-4">
+            {userRole === 'admin' && (
+              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
+                <Save size={18} /> حفظ التعديلات
+              </Button>
+            )}
+            <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
+              <button onClick={() => { if (userRole === 'admin') { navigate('/dashboard'); } else { setShowLoginModal(true); } }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
+              <button onClick={() => { setUserRole('artist'); navigate('/login'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
+              <button onClick={() => setUserRole('visitor')} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}>زائر</button>
             </div>
+          </div>
+        </div>
+      </nav>
 
-            <div className="space-y-6">
-              <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
-              
-              {canEdit && (
-                <>
-                  <div className="bg-purple-50 text-purple-700 p-4 rounded-2xl text-sm font-bold border border-purple-100 flex items-center gap-2 mb-2">
-                    <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في هذا الملف
-                  </div>
-                  <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black border-none shadow-lg hover:opacity-90 transition-all">
-                    <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة
-                  </Button>
-                  <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
-                </>
-              )}
-              
-              <div className="space-y-4">
-                {samples.map((s: any) => (
-                  <div key={s.id} className="flex items-center justify-between p-5 bg-stone-50 rounded-[2rem] border border-stone-100">
-                    <div className="flex items-center gap-4">
-                      <Button onClick={() => togglePlay(s.id, s.url)} className={`w-12 h-12 rounded-2xl text-white transition-all ${playingId === s.id ? 'bg-stone-900' : 'bg-vox-primary'}`}>
-                        {playingId === s.id ? <Pause /> : <Play />}
-                      </Button>
-                      <span className="font-black truncate max-w-[200px] md:max-w-md">{s.title}</span>
+      <section className="pt-32 pb-40 px-4 text-center">
+        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
+        <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.</p>
+        <div className="flex justify-center gap-6">
+          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>
+          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
+        </div>
+      </section>
+
+      <section id="about" className="py-32 bg-stone-900 text-white rounded-[4rem] mx-4 overflow-hidden text-center">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-5xl font-black mb-16 italic text-white">لماذا VoxDub؟</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mt-20">
+            {aboutData.map((item: any, i: number) => {
+              const IconComponent = iconMap[item.icon] || Mic;
+              return (
+                <div key={i} className="bg-white/5 p-10 rounded-[3rem] border border-white/10 text-center">
+                  {userRole === 'admin' ? (
+                    <div className="space-y-4">
+                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: themeColor + '33' }}>
+                        <IconComponent size={52} style={{ color: themeColor }} />
+                      </div>
+                      <input value={item.t} onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }} className="editable-input text-2xl font-black" />
+                      <textarea value={item.d} onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }} className="editable-input text-stone-400 font-bold h-24 resize-none text-lg" />
                     </div>
-                    {canEdit && (
-                      <button onClick={() => {
-                        const updated = samples.filter(x => x.id !== s.id);
-                        setSamples(updated);
-                        localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-                        toast.success("تم حذف العينة");
-                      }} className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-stone-50" />
-
-            <div className="space-y-6 pt-4">
-              <h3 className="text-xl font-black flex items-center gap-2"><Star className="text-yellow-500 fill-yellow-500" /> قالوا عن {profile.name?.split(' ')[0]}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[{ name: "أحمد منصور", text: "أداء صوتي مذهل واحترافية عالية.", r: 5 }, { name: "سارة خالد", text: "صوت رخيم جداً، أضاف لمسة إبداعية.", r: 5 }].map((rev, i) => (
-                  <div key={i} className="p-6 bg-stone-50 rounded-[2rem] border border-stone-100">
-                    <div className="flex gap-1 mb-2">{[...Array(rev.r)].map((_, j) => <Star key={j} size={14} className="fill-yellow-500 text-yellow-500" />)}</div>
-                    <p className="text-stone-600 font-bold text-sm italic mb-2">"{rev.text}"</p>
-                    <span className="font-black text-xs">— {rev.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ) : (
+                    <>
+                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8" style={{ backgroundColor: themeColor + '33' }}>
+                        <IconComponent size={52} style={{ color: themeColor }} />
+                      </div>
+                      <h3 className="text-3xl font-black mb-4 text-white">{item.t}</h3>
+                      <p className="text-stone-300 font-bold leading-relaxed text-xl">{item.d}</p>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      </section>
+
+      <section id="artists" className="py-32 bg-stone-50 text-center">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
+          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-right">
+            {allArtists.map((artist) => (
+              <div key={artist.id} className="bg-vox-primary rounded-[4rem] p-10 shadow-2xl relative overflow-hidden group transition-all hover:-translate-y-4 text-white">
+                <div className="flex justify-between items-start mb-8 relative z-10">
+                  <Award size={32} className="opacity-50" />
+                  <div>
+                    <h3 className="text-3xl font-black leading-none">{artist.name}</h3>
+                    <p className="font-bold opacity-80 mt-2">{artist.role}</p>
+                    <div className="flex items-center justify-end gap-1 mt-3">
+                      <span className="text-xl font-black">{artist.rating}</span>
+                      <Star size={18} className="fill-white text-white" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner">
+                  <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200 flex items-center justify-center">
+                    <img src={artist.image || '/images/default.jpg'} className="w-full h-full object-cover" alt={artist.name} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: 3rem; font-weight: 900; color: #9ca3af;">${artist.name?.charAt(0)}</span>`; }} />
+                  </div>
+                  <div className="text-right text-white/90 text-sm font-bold space-y-1">
+                    <p>الخبرة: <span className="text-white">{artist.experience}</span></p>
+                    <p>اللغة: <span className="text-white">{artist.id === 1 ? liveLang : artist.language}</span></p>
+                  </div>
+                </div>
+                <div className="space-y-4 relative z-10">
+                  <button
+                    onClick={() => toggleAudio(artist)}
+                    className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}
+                  >
+                    {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
+                    {playingId === artist.id ? "إيقاف" : "استمع"}
+                  </button>
+                  {/* 🟢 التعديل الأهم: الزر الآن يأخذ الجميع للملف الشخصي بشكل صحيح */}
+                  <button
+                    onClick={() => navigate(`/dashboard/artists/${artist.id}`)}
+                    className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
+                  >
+                    الملف الشخصي
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" className="py-32 bg-white text-center text-stone-900">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-5xl font-black mb-24 italic text-stone-900">كيف <span className="text-vox-primary">نعمل؟</span></h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { icon: Search, t: "1. اكتشف", d: "اختر الصوت المناسب لمشروعك." },
+              { icon: MessageSquare, t: "2. تواصل", d: "أرسل تفاصيل مشروعك والنص." },
+              { icon: Headphones, t: "3. تنفيذ", d: "نسجل العمل بأحدث التقنيات." },
+              { icon: FileCheck, t: "4. استلام", d: "استلم ملفك بجودة احترافية." }
+            ].map((step, i) => (
+              <div key={i} className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 hover:shadow-xl transition-all group">
+                <div className="w-16 h-16 bg-vox-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:rotate-12 transition-transform">
+                  <step.icon className="text-white" size={32} />
+                </div>
+                <h3 className="text-xl font-black mb-4">{step.t}</h3>
+                <p className="text-stone-500 font-bold text-sm leading-relaxed">{step.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا الإبداعية</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
+            {pricingData.map((plan: any, i: number) => (
+              <div key={i} className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}>
+                {plan.popular && <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">الأكثر طلباً</div>}
+                {userRole === 'admin' ? (
+                  <div className="space-y-3">
+                    <input value={plan.t} onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-2xl font-black text-stone-900" />
+                    <input value={plan.d} onChange={(e) => { const nd = [...pricingData]; nd[i].d = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-sm font-bold text-stone-400" />
+                    <div className="flex items-center justify-center gap-2 py-4">
+                      <input value={plan.p} onChange={(e) => { const nd = [...pricingData]; nd[i].p = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-4xl font-black text-vox-primary w-24" />
+                      <input value={plan.u} onChange={(e) => { const nd = [...pricingData]; nd[i].u = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-xs font-black text-stone-400 w-24" />
+                    </div>
+                    <textarea value={plan.f.join('\n')} onChange={(e) => { const nd = [...pricingData]; nd[i].f = e.target.value.split('\n'); setPricingData(nd); }} className="editable-input pricing-input text-stone-600 font-bold h-40 resize-none text-sm leading-relaxed" />
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-black mb-1">{plan.t}</h3>
+                    <p className="text-stone-400 font-bold text-sm mb-6">{plan.d}</p>
+                    <div className="mb-8">
+                      <span className="text-5xl font-black text-vox-primary">{plan.p}</span>
+                      <span className="text-stone-400 font-black text-xs mr-2">{plan.u}</span>
+                    </div>
+                    <ul className="space-y-4 mb-10">
+                      {plan.f.map((feature: string, j: number) => (
+                        <li key={j} className="flex items-center gap-3 font-bold text-stone-600 text-sm">
+                          <CheckCircle2 className="text-vox-primary flex-shrink-0" size={16} /> {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <a href="#contact" className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}>اختيار الباقة</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden">
+          <OrderForm />
+        </div>
+      </section>
+
+      <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
+        <div className="text-4xl font-black mb-8 italic text-white">Vox<span className="text-vox-primary">Dub</span></div>
+        <p className="text-stone-600 font-bold italic">إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio</p>
+      </footer>
     </div>
   );
 }
