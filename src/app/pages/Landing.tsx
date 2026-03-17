@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// استيراد المكونات
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 
@@ -27,15 +26,21 @@ export function Landing() {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // 🟢 السر هنا: جلب المعلقين من الذاكرة (الملفات الشخصية) وليس من القائمة الثابتة
+  // 🟢 السر هنا: دمج الذاكرة مع القائمة الرسمية لكي لا يختفي أحد أبداً
   const [displayArtists, setDisplayArtists] = useState(() => {
     const saved = localStorage.getItem('voxdub_artists_v2');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // عرض المعلقين غير المؤرشفين فقط
-      return parsed.filter((a: any) => !a.isArchived);
-    }
-    return initialArtists;
+    const savedArtists = saved ? JSON.parse(saved) : [];
+    
+    const combined = [...savedArtists];
+    initialArtists.forEach(official => {
+      // إذا لم يكن المعلق الرسمي موجوداً في الذاكرة، أضفه
+      if (!combined.find((a: any) => String(a.id) === String(official.id))) {
+        combined.push(official);
+      }
+    });
+    
+    // ترتيبهم وعرض غير المؤرشفين فقط
+    return combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived);
   });
 
   const [aboutData, setAboutData] = useState(() => {
@@ -57,12 +62,19 @@ export function Landing() {
   });
 
   useEffect(() => {
-    // 🟢 تحديث الواجهة فوراً إذا تم تعديل أي ملف شخصي
+    // 🟢 تحديث الواجهة فوراً مع نفس منطق الدمج
     const handleStorageChange = () => {
       const saved = localStorage.getItem('voxdub_artists_v2');
-      if (saved) {
-        setDisplayArtists(JSON.parse(saved).filter((a: any) => !a.isArchived));
-      }
+      const savedArtists = saved ? JSON.parse(saved) : [];
+      
+      const combined = [...savedArtists];
+      initialArtists.forEach(official => {
+        if (!combined.find((a: any) => String(a.id) === String(official.id))) {
+          combined.push(official);
+        }
+      });
+      
+      setDisplayArtists(combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived));
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
