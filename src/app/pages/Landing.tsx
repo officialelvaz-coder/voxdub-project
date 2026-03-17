@@ -27,20 +27,24 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
 ];
 
+const originalIds = [1, 2, 3, 4, 5, 6];
+
 const getNewArtists = () => {
   const saved = localStorage.getItem('voxdub_artists_v2');
   if (!saved) return [];
-  return JSON.parse(saved).map((a: any) => ({
-    id: a.id,
-    name: a.name,
-    role: a.role || 'معلق صوتي',
-    rating: a.rating || 5.0,
-    experience: a.experience || 'غير محدد',
-    language: a.language || 'عربية فصحى',
-    image: a.image || '',
-    audio: a.audio || `/audio/${a.slug}.mp3`,
-    isNew: true,
-  }));
+  return JSON.parse(saved)
+    .filter((a: any) => !originalIds.includes(Number(a.id)))
+    .map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      role: a.role || 'معلق صوتي',
+      rating: a.rating || 5.0,
+      experience: a.experience || 'غير محدد',
+      language: a.language || 'عربية فصحى',
+      image: a.image || '',
+      audio: a.audio || `/audio/${a.slug}.mp3`,
+      isNew: true,
+    }));
 };
 
 export function Landing() {
