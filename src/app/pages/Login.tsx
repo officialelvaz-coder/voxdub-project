@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
 
-// نترك هذه القائمة فارغة أو كاحتياط فقط في حال كانت الذاكرة فارغة تماماً
+// هذه القائمة تظهر فقط في حال كان الموقع فارغاً تماماً لأول مرة
 const defaultArtists = [
   { id: "1", name: "مصطفى جغلال" },
   { id: "2", name: "لميس حميمي" },
   { id: "3", name: "بلهادي محمد إسلام" },
   { id: "4", name: "أحمد حاج إسماعيل" }
-  { id: "4", name: "زب زبي" }
-
 ];
 
 export function Login() {
@@ -22,30 +20,32 @@ export function Login() {
     localStorage.removeItem('voxdub_user_role');
     localStorage.removeItem('voxdub_logged_artist_id');
     
-    // 🟢 السر هنا: نجلب البيانات الحية التي تضيفها أنت من لوحة التحكم
+    // جلب البيانات الحية من ذاكرة الموقع
     const saved = localStorage.getItem('voxdub_artists_v2');
     let allArtists = saved ? JSON.parse(saved) : defaultArtists;
 
-    // 🟢 نأخذ أول 4 معلقين موجودين في الذاكرة حالياً (سواء قدامى أو جدد)
-    // ونستبعد أي حساب يحمل اسم "مديرة الموقع" إذا وجد
-    const topFour = allArtists
-      .filter((a: any) => a.name !== "مديرة الموقع" && a.name !== "Admin")
-      .slice(0, 4);
+    // 🟢 التعديل الجوهري: إزالة slice(0, 4) لعرض الجميع تلقائياً
+    // واستبعاد الأسماء المحجوزة للمديرين فقط
+    const filteredList = allArtists.filter((a: any) => 
+      a.name !== "مديرة الموقع" && 
+      a.name !== "Admin" && 
+      a.name !== "لميس" // استبعاد اسم المديرة إذا كان موجوداً كمعلق
+    );
 
-    setArtistsList(topFour);
+    setArtistsList(filteredList);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // دخول المديرة: بدون اختيار اسم + كلمة سر المديرة
+    // دخول المديرة (بدون اختيار اسم + كلمة سر admin123)
     if (!selectedArtist && password === 'admin123') {
       localStorage.setItem('voxdub_user_role', 'admin');
       window.location.href = '/dashboard/artists';
       return;
     }
 
-    // دخول المعلق: اختيار اسم + كلمة سر المعلق
+    // دخول المعلق (اختيار اسم + كلمة سر artist123)
     if (selectedArtist && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
       localStorage.setItem('voxdub_logged_artist_id', selectedArtist);
@@ -64,7 +64,7 @@ export function Login() {
             <Mic2 size={40} />
           </div>
           <h1 className="text-3xl font-black text-stone-900 italic">Voxdub <span style={{ color: themeColor }}>Portal</span></h1>
-          <p className="text-stone-400 font-bold mt-2">اختر حسابك للبدء</p>
+          <p className="text-stone-400 font-bold mt-2">اختر حسابك للولوج</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -76,9 +76,9 @@ export function Login() {
               className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none font-bold text-stone-600 bg-stone-50 transition-all"
               style={{ '--tw-ring-color': themeColor } as any}
             >
-              {/* خيار المديرة مخفي برمجياً (يدخل عبر كلمة السر فقط دون اختيار اسم) */}
               <option value="">دخول كمدير (المديرة لميس)</option>
               
+              {/* سيعرض الآن كل المعلقين المضافين في localStorage */}
               {artistsList.map((artist) => (
                 <option key={artist.id} value={artist.id}>
                   {artist.name}
@@ -102,7 +102,7 @@ export function Login() {
 
           <button
             type="submit"
-            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-stone-200 active:scale-95"
+            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg active:scale-95"
             style={{ backgroundColor: themeColor }}
           >
             <LogIn size={20} />
