@@ -31,7 +31,15 @@ export function ArtistProfile() {
   // 🟢 تعديل كلود: توحيد العينة الافتراضية للجميع بدون شروط
   const [samples, setSamples] = useState(() => {
     const saved = localStorage.getItem(`voxdub_samples_${id}`);
-    const defaultAudioUrl = "/audio/mustapha.mp3";
+    const audioMap: Record<string, string> = {
+  "1": "/audio/mustapha.mp3",
+  "2": "/audio/lamis.mp3",
+  "3": "/audio/islam.mp3",
+  "4": "/audio/ahmed.mp3",
+  "5": "/audio/manel.mp3",
+  "6": "/audio/adem.mp3",
+};
+const defaultAudioUrl = audioMap[String(id)] || "/audio/mustapha.mp3";
     
     return saved ? JSON.parse(saved) : [
       { id: 1, title: `عينة العرض الرئيسية - ${artistData.name}`, url: defaultAudioUrl }
