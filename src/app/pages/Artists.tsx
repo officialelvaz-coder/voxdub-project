@@ -6,19 +6,18 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { 
   Search, UserPlus, Trash2, Play, Pause, Upload, 
-  CheckCircle2, Headset, Mic, X, CloudUpload, 
-  Home, Archive, RotateCcw 
+  CheckCircle2, Headset, Mic, X, CloudUpload, Home 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// القائمة الرسمية التي أردتها
+// القائمة الرسمية الأساسية
 const officialArtists = [
-  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", gender: "أنثى", experience: "5 سنوات", image: "/images/manal.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", gender: "ذكر", experience: "10 سنوات", image: "/images/adam.jpg", language: "عربي فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false }
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", audio: "/audio/mustapha.mp3" },
+  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", audio: "/audio/mustapha.mp3" },
+  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3" },
+  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", audio: "/audio/mustapha.mp3" },
+  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", gender: "أنثى", experience: "5 سنوات", image: "/images/manal.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3" },
+  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", gender: "ذكر", experience: "10 سنوات", image: "/images/adam.jpg", language: "عربي فصحى وعامية", audio: "/audio/mustapha.mp3" }
 ];
 
 const arabicToSlug = (name: string): string => {
@@ -150,7 +149,6 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: {
 export function Artists() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [newArtist, setNewArtist] = useState({
@@ -158,10 +156,19 @@ export function Artists() {
     language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '',
   });
   
-  // استدعاء القائمة الرسمية
+  // 🟢 سر الخلطة: دمج المعلقين القدامى (مثل ساااالمي) مع القائمة الرسمية
   const [artists, setArtists] = useState(() => {
     const saved = localStorage.getItem('voxdub_artists_v2');
-    return saved ? JSON.parse(saved) : officialArtists;
+    const savedArtists = saved ? JSON.parse(saved) : [];
+    
+    // تأكد من وجود القائمة الرسمية دائماً إلى جانب إضافاتك
+    const combined = [...savedArtists];
+    officialArtists.forEach(official => {
+      if (!combined.find((a: any) => a.id === official.id)) {
+        combined.push(official);
+      }
+    });
+    return combined;
   });
 
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -173,7 +180,14 @@ export function Artists() {
       const color = localStorage.getItem('voxdub_theme');
       if (color) setThemeColor(color);
       const savedArtists = localStorage.getItem('voxdub_artists_v2');
-      if (savedArtists) setArtists(JSON.parse(savedArtists));
+      if (savedArtists) {
+        const parsed = JSON.parse(savedArtists);
+        const combined = [...parsed];
+        officialArtists.forEach(official => {
+          if (!combined.find((a: any) => a.id === official.id)) combined.push(official);
+        });
+        setArtists(combined);
+      }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -199,9 +213,9 @@ export function Artists() {
       audioName: newArtist.audioName || `عينة ${newArtist.name}`,
       image: newArtist.image || `/images/${slug}.jpg`,
       experience: newArtist.experienceYears ? `${newArtist.experienceYears} سنوات` : 'غير محدد',
-      language: newArtist.language || 'عربية فصحى',
-      isArchived: false,
+      language: newArtist.language || 'عربية فصحى'
     };
+    
     const updatedArtists = [artistToAdd, ...artists];
     setArtists(updatedArtists);
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(updatedArtists));
@@ -215,18 +229,6 @@ export function Artists() {
     setArtists(updated);
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(updated));
     toast.success('تم حذف المعلق');
-  };
-
-  const handleArchiveToggle = (id: number) => {
-    const updated = artists.map((a: any) =>
-      a.id === id ? { ...a, isArchived: !a.isArchived } : a
-    );
-    setArtists(updated);
-    localStorage.setItem('voxdub_artists_v2', JSON.stringify(updated));
-    toast.success(updated.find((a: any) => a.id === id)?.isArchived 
-      ? 'تم أرشفة المعلق' 
-      : 'تم إعادة التفعيل'
-    );
   };
 
   const toggleAudio = (id: number, audioUrl: string) => {
@@ -243,11 +245,9 @@ export function Artists() {
     }
   };
 
-  const filteredArtists = artists
-    .filter((a: any) => showArchived ? a.isArchived : !a.isArchived)
-    .filter((a: any) =>
-      a.name?.includes(searchQuery) || a.role?.includes(searchQuery)
-    );
+  const filteredArtists = artists.filter((a: any) =>
+    a.name?.includes(searchQuery) || a.role?.includes(searchQuery)
+  );
 
   return (
     <div className="p-4 space-y-6 text-right" dir="rtl">
@@ -262,18 +262,18 @@ export function Artists() {
         themeColor={themeColor}
       />
 
-      {/* زر العودة للرئيسية */}
+      {/* زر العودة للرئيسية الذي طلبته */}
       <div className="mb-6">
         <button 
           onClick={() => navigate('/')} 
           className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 hover:text-stone-900 transition-all font-bold shadow-sm"
         >
           <Home size={20} />
-          العودة للواجهة الرئيسية
+          الصفحة الرئيسية
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-4">
         <h1 className="text-4xl font-black text-stone-900 italic">
           المكتبة <span style={{ color: themeColor }}>الصوتية</span>
         </h1>
@@ -319,23 +319,7 @@ export function Artists() {
         </Dialog>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <button 
-          onClick={() => setShowArchived(false)}
-          className={`px-6 py-3 rounded-2xl font-black transition-all ${!showArchived ? `text-white shadow-lg` : 'bg-stone-200 text-stone-600'}`}
-          style={{ backgroundColor: !showArchived ? themeColor : undefined }}
-        >
-          المعلقون النشطون
-        </button>
-        <button 
-          onClick={() => setShowArchived(true)}
-          className={`px-6 py-3 rounded-2xl font-black transition-all ${showArchived ? 'bg-amber-600 text-white shadow-lg' : 'bg-stone-200 text-stone-600'}`}
-        >
-          المعلقون القدامى (الأرشيف)
-        </button>
-      </div>
-
-      <div className="relative mb-6">
+      <div className="relative mb-8">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
         <input
           value={searchQuery}
@@ -348,9 +332,7 @@ export function Artists() {
       {filteredArtists.length === 0 ? (
         <div className="text-center py-20 text-stone-400">
           <Mic size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="font-black text-xl">
-            {showArchived ? 'لا يوجد معلقون في الأرشيف بعد' : 'لا يوجد معلقون نشطون بعد'}
-          </p>
+          <p className="font-black text-xl">لا يوجد معلقون مسجلون بعد</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -379,19 +361,9 @@ export function Artists() {
                   {playingId === artist.id ? <><Pause size={16} /> إيقاف</> : <><Play size={16} /> استمع</>}
                 </button>
                 <button
-                  onClick={() => handleArchiveToggle(artist.id)}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                    artist.isArchived 
-                      ? 'bg-green-100 text-green-600 hover:bg-green-600 hover:text-white' 
-                      : 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white'
-                  }`}
-                  title={artist.isArchived ? "إلغاء الأرشفة" : "أرشفة المعلق"}
-                >
-                  {artist.isArchived ? <RotateCcw size={18} /> : <Archive size={18} />}
-                </button>
-                <button
                   onClick={() => handleDeleteArtist(artist.id)}
                   className="w-12 h-12 rounded-2xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                  title="حذف المعلق"
                 >
                   <Trash2 size={18} />
                 </button>
