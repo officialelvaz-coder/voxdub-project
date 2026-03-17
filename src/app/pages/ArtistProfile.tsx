@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { 
   UploadCloud, Save, Home, Play, Pause, Trash2, 
-  User, Music, Star, CheckCircle2, Clock, FolderKanban, ShieldCheck
+  User, Music, Star, CheckCircle2, Clock, FolderKanban, ShieldCheck, Edit3, MessageSquare, Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,59 +20,55 @@ const officialArtists = [
 export function ArtistProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
-
-  // 🟢 استخراج الصلاحية بشكل صحيح حتى للمديرة لميس
+  
+  // 🎨 إدارة الألوان والصلاحيات
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#e11d48');
   const userRole = localStorage.getItem('voxdub_user_role') || 'visitor';
-  const loggedInArtistId = localStorage.getItem('voxdub_logged_in_id') || "1";
-  const canEdit = userRole === 'admin' || (userRole === 'artist' && loggedInArtistId === String(id));
+  const loggedInArtistId = localStorage.getItem('voxdub_logged_artist_id');
+  
+  // شرط الصلاحية: المديرة أو صاحب الملف فقط
+  const canEdit = userRole === 'admin' || (userRole === 'artist' && String(loggedInArtistId) === String(id));
 
   const [profile, setProfile] = useState(() => {
     const savedArtists = localStorage.getItem('voxdub_artists_v2');
     const parsedArtists = savedArtists ? JSON.parse(savedArtists) : [];
     const localArtist = parsedArtists.find((a: any) => String(a.id) === String(id));
     const officialArtist = officialArtists.find(a => String(a.id) === String(id));
-    
     const foundData = localArtist || officialArtist || officialArtists[0];
-    return { 
-      ...foundData, 
-      bio: foundData.bio || (id === "1" ? "معلق صوتي محترف، رائد فن الحكي والتعليق الإبداعي." : "مؤدي صوتي متميز في منصة VoxDub.")
-    };
+    return { ...foundData, bio: foundData.bio || "معلق صوتي متميز في منصة VoxDub." };
   });
 
   const [samples, setSamples] = useState(() => {
     const saved = localStorage.getItem(`voxdub_samples_${id}`);
-    const defaultAudioUrl = "/audio/mustapha.mp3";
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: `عينة العرض الرئيسية - ${profile.name}`, url: defaultAudioUrl }
-    ];
+    return saved ? JSON.parse(saved) : (profile.audio ? [{ id: 1, title: `العينة الرئيسية`, url: profile.audio }] : []);
   });
 
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(null);
 
+  // 1. رفع عينة جديدة وتخزينها
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const base64Audio = event.target?.result as string;
-        const newSample = { id: Date.now(), title: file.name.split('.')[0], url: base64Audio };
+        const newSample = { id: Date.now(), title: file.name.split('.')[0], url: event.target?.result as string };
         const updated = [newSample, ...samples];
         setSamples(updated);
         localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-        toast.success("تم حفظ العينة بنجاح");
+        toast.success("تم رفع العينة بنجاح");
       };
       reader.readAsDataURL(file);
     }
   };
 
   const togglePlay = (sid: number, url: string) => {
+    if (!url) return toast.error("العينة غير متاحة");
     if (playingId === sid) { audioInstance?.pause(); setPlayingId(null); }
     else {
       if (audioInstance) audioInstance.pause();
       const audio = new Audio(url);
-      audio.play().catch(() => toast.error("عذراً، العينة غير متوفرة حالياً"));
+      audio.play().catch(() => toast.error("خطأ في التشغيل"));
       setAudioInstance(audio); setPlayingId(sid);
       audio.onended = () => setPlayingId(null);
     }
@@ -81,40 +77,48 @@ export function ArtistProfile() {
   const handleSaveProfile = () => {
     const savedArtists = localStorage.getItem('voxdub_artists_v2');
     let artistsArray = savedArtists ? JSON.parse(savedArtists) : [...officialArtists];
-    
     const index = artistsArray.findIndex((a: any) => String(a.id) === String(id));
-    if (index >= 0) {
-      artistsArray[index] = profile;
-    } else {
-      artistsArray.push(profile);
-    }
-    
+    if (index >= 0) artistsArray[index] = profile;
+    else artistsArray.push(profile);
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(artistsArray));
-    toast.success("تم حفظ التعديلات بنجاح!");
+    toast.success("تم الحفظ بنجاح!");
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-20 text-right px-4 text-stone-900" dir="rtl">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        *, body, div, p, h1, h2, h3, span, button, input, textarea { font-family: 'Cairo', sans-serif !important; }
+        *, body { font-family: 'Cairo', sans-serif !important; }
         .bg-vox-primary { background-color: ${themeColor} !important; } 
         .text-vox-primary { color: ${themeColor} !important; }
       `}</style>
 
-      {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 mt-6">
-        <Button onClick={() => navigate('/dashboard/artists')} variant="ghost" className="font-black text-stone-400 hover:text-vox-primary"><Home className="ml-2" /> العودة للقائمة</Button>
+      {/* 🔝 الشريط العلوي */}
+      <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 mt-6">
+        <Button onClick={() => navigate('/dashboard/artists')} variant="ghost" className="font-black text-stone-400 hover:text-vox-primary"><Home className="ml-2" /> المكتبة</Button>
         
-        {canEdit && (
-          <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black border-none shadow-xl hover:opacity-90 transition-all">
-            <Save className="ml-2" /> حفظ التغييرات
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          {/* 🎨 مبدل الألوان للمديرة فقط */}
+          {userRole === 'admin' && (
+            <div className="flex items-center gap-2 bg-stone-50 p-2 px-4 rounded-2xl border border-stone-100">
+              <Palette size={18} className="text-stone-400" />
+              <input type="color" value={themeColor} onChange={(e) => {
+                setThemeColor(e.target.value);
+                localStorage.setItem('voxdub_theme', e.target.value);
+              }} className="w-8 h-8 rounded-lg cursor-pointer border-none bg-transparent" />
+            </div>
+          )}
+          
+          {canEdit && (
+            <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black shadow-xl">
+              <Save className="ml-2" /> حفظ التغييرات
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sidebar */}
+        {/* 👤 الجانب الأيمن: البروفايل */}
         <div className="space-y-6">
           <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center relative">
             {canEdit && (
@@ -123,123 +127,96 @@ export function ArtistProfile() {
               </span>
             )}
             
-            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner mt-4">
-               <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-stone-300 bg-stone-100">${profile.name?.charAt(0)}</div>`; }} />
+            {/* 📸 تعديل الصورة الشخصية */}
+            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner relative group mt-4">
+               <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" />
+               {canEdit && (
+                 <div onClick={() => {
+                   const input = document.createElement('input');
+                   input.type = 'file'; input.accept = 'image/*';
+                   input.onchange = (e: any) => {
+                     const reader = new FileReader();
+                     reader.onload = (ev) => setProfile({...profile, image: ev.target?.result as string});
+                     reader.readAsDataURL(e.target.files[0]);
+                   };
+                   input.click();
+                 }} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                   <UploadCloud className="text-white" />
+                 </div>
+               )}
             </div>
             
-            {canEdit ? (
-              <input 
-                value={profile.name}
-                onChange={(e) => setProfile({...profile, name: e.target.value})}
-                className="text-2xl font-black text-center bg-transparent border-b-2 border-dashed border-stone-200 focus:border-stone-400 outline-none w-full max-w-[200px] mb-2 px-2 py-1 transition-colors block mx-auto"
-                placeholder="اسم المعلق"
-              />
-            ) : (
-              <h2 className="text-2xl font-black mb-2">{profile.name}</h2>
-            )}
-            
-            {canEdit ? (
-              <input 
-                value={profile.role}
-                onChange={(e) => setProfile({...profile, role: e.target.value})}
-                className="font-bold italic text-center bg-transparent border-b-2 border-dashed border-stone-200 outline-none w-full max-w-[250px] px-2 py-1 transition-colors block mx-auto"
-                style={{ color: themeColor, borderBottomColor: `${themeColor}40` }}
-                placeholder="الدور أو الصفة"
-              />
-            ) : (
-              <p className="font-bold italic" style={{ color: themeColor }}>{profile.role}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-             {[
-               { label: "مشاريع جديدة", count: id === "1" ? 5 : 2, icon: FolderKanban, color: "#0ea5e9" },
-               { label: "قيد الإنجاز", count: id === "1" ? 3 : 1, icon: Clock, color: "#f59e0b" },
-               { label: "مشاريع مكتملة", count: id === "1" ? 124 : 45, icon: CheckCircle2, color: "#10b981" }
-             ].map((item, i) => (
-               <div key={i} className="bg-white p-6 rounded-[2rem] border border-stone-100 flex items-center justify-between shadow-sm">
-                 <div className="flex items-center gap-4">
-                   <div className="p-3 rounded-2xl text-white" style={{backgroundColor: item.color}}><item.icon size={20}/></div>
-                   <span className="font-black">{item.label}</span>
-                 </div>
-                 <span className="text-2xl font-black">{item.count}</span>
-               </div>
-             ))}
+            <h2 className="text-2xl font-black mb-2">
+              {canEdit ? <input value={profile.name} onChange={(e)=>setProfile({...profile, name: e.target.value})} className="text-center bg-transparent border-b border-dashed border-stone-200 w-full outline-none px-2" /> : profile.name}
+            </h2>
+            <p className="font-bold italic text-vox-primary">
+              {canEdit ? <input value={profile.role} onChange={(e)=>setProfile({...profile, role: e.target.value})} className="text-center bg-transparent border-b border-dashed border-stone-200 w-full outline-none px-2" /> : profile.role}
+            </p>
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* 📝 الجانب الأيسر: العينات والرسائل */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-stone-100 space-y-8">
-            <div className="space-y-3">
-              <h3 className="text-lg font-black flex items-center gap-2"><User className="text-vox-primary" /> النبذة التعريفية</h3>
-              
-              {canEdit ? (
-                <Textarea 
-                  value={profile.bio} 
-                  onChange={(e)=>setProfile({...profile, bio: e.target.value})} 
-                  className="bg-stone-50 border-none rounded-2xl p-6 font-bold min-h-[120px] outline-none resize-none focus:ring-2 ring-stone-200 transition-all text-stone-700 leading-relaxed" 
-                  placeholder="اكتب نبذة عن المعلق هنا..."
-                />
-              ) : (
-                <p className="bg-stone-50 border border-stone-100 rounded-2xl p-6 font-bold min-h-[120px] text-stone-700 leading-relaxed">
-                  {profile.bio || "لا توجد نبذة تعريفية مسجلة بعد."}
-                </p>
-              )}
-            </div>
+          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-stone-100">
+            <h3 className="text-xl font-black flex items-center gap-2 mb-6"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
+            
+            {canEdit && (
+              <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black mb-6">
+                <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة
+              </Button>
+            )}
+            <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
 
-            <div className="space-y-6">
-              <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
-              
-              {canEdit && (
-                <>
-                  <div className="bg-purple-50 text-purple-700 p-4 rounded-2xl text-sm font-bold border border-purple-100 flex items-center gap-2 mb-2">
-                    <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في هذا الملف
-                  </div>
-                  <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black border-none shadow-lg hover:opacity-90 transition-all">
-                    <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة
-                  </Button>
-                  <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
-                </>
-              )}
-              
-              <div className="space-y-4">
-                {samples.map((s: any) => (
+            <div className="space-y-4">
+              {samples.length > 0 ? (
+                samples.map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between p-5 bg-stone-50 rounded-[2rem] border border-stone-100">
                     <div className="flex items-center gap-4">
-                      <Button onClick={() => togglePlay(s.id, s.url)} className={`w-12 h-12 rounded-2xl text-white transition-all ${playingId === s.id ? 'bg-stone-900' : 'bg-vox-primary'}`}>
+                      <Button onClick={() => togglePlay(s.id, s.url)} className={`w-12 h-12 rounded-2xl text-white ${playingId === s.id ? 'bg-stone-900' : 'bg-vox-primary'}`}>
                         {playingId === s.id ? <Pause /> : <Play />}
                       </Button>
-                      <span className="font-black truncate max-w-[200px] md:max-w-md">{s.title}</span>
+                      <div className="flex flex-col">
+                        <span className="font-black">{s.title}</span>
+                        {!s.url && <span className="text-red-400 text-xs font-bold italic">العينة غير متاحة</span>}
+                      </div>
                     </div>
                     {canEdit && (
-                      <button onClick={() => {
-                        const updated = samples.filter(x => x.id !== s.id);
-                        setSamples(updated);
-                        localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-                        toast.success("تم حذف العينة");
-                      }} className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
+                      <div className="flex gap-2">
+                        {/* ✏️ تعديل اسم العينة */}
+                        <button onClick={() => {
+                          const newName = prompt("اسم العينة الجديد:", s.title);
+                          if (newName) {
+                            const updated = samples.map((x:any) => x.id === s.id ? {...x, title: newName} : x);
+                            setSamples(updated);
+                            localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
+                          }
+                        }} className="p-2 text-stone-400 hover:text-vox-primary" title="تعديل الاسم"><Edit3 size={18} /></button>
+                        <button onClick={() => {
+                          const updated = samples.filter(x => x.id !== s.id);
+                          setSamples(updated);
+                          localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
+                        }} className="p-2 text-red-400" title="حذف"><Trash2 size={18} /></button>
+                      </div>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-stone-50" />
-
-            <div className="space-y-6 pt-4">
-              <h3 className="text-xl font-black flex items-center gap-2"><Star className="text-yellow-500 fill-yellow-500" /> قالوا عن {profile.name?.split(' ')[0]}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[{ name: "أحمد منصور", text: "أداء صوتي مذهل واحترافية عالية.", r: 5 }, { name: "سارة خالد", text: "صوت رخيم جداً، أضاف لمسة إبداعية.", r: 5 }].map((rev, i) => (
-                  <div key={i} className="p-6 bg-stone-50 rounded-[2rem] border border-stone-100">
-                    <div className="flex gap-1 mb-2">{[...Array(rev.r)].map((_, j) => <Star key={j} size={14} className="fill-yellow-500 text-yellow-500" />)}</div>
-                    <p className="text-stone-600 font-bold text-sm italic mb-2">"{rev.text}"</p>
-                    <span className="font-black text-xs">— {rev.name}</span>
-                  </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-10 border-2 border-dashed border-stone-100 rounded-[2rem]">
+                   <p className="text-stone-400 font-bold italic">عذراً، العينة غير متاحة حالياً لهذا المعلق.</p>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ✉️ خانة الرسائل (للمعلق أو المديرة فقط) */}
+          {(userRole === 'admin' || (userRole === 'artist' && String(loggedInArtistId) === String(id))) && (
+            <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-stone-100">
+              <h3 className="text-xl font-black flex items-center gap-2 mb-6"><MessageSquare className="text-vox-primary" /> صندوق رسائل المعلق</h3>
+              <div className="p-8 bg-stone-50 rounded-[2rem] border border-stone-100 text-center">
+                 <p className="text-stone-400 font-bold">لا توجد رسائل جديدة حالياً. سيتم إخطارك فور وصول طلبات عمل.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
