@@ -16,16 +16,32 @@ const audioMap: Record<number, string> = {
   4: "/audio/ahmed.mp3",
   5: "/audio/manel.mp3",
   6: "/audio/adem.mp3",
-  };
+};
 
 const initialArtists = [
-  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg" },
-  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg" },
-  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg" },
-  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg" },
-  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", rating: 4.9, experience: "5 سنوات", language: "عربي فصحى", image: "/images/manal.jpg" },
-  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg" }
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", isNew: false, audio: "" },
+  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg", isNew: false, audio: "" },
+  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg", isNew: false, audio: "" },
+  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg", isNew: false, audio: "" },
+  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", rating: 4.9, experience: "5 سنوات", language: "عربي فصحى", image: "/images/manal.jpg", isNew: false, audio: "" },
+  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
 ];
+
+const getNewArtists = () => {
+  const saved = localStorage.getItem('voxdub_artists_v2');
+  if (!saved) return [];
+  return JSON.parse(saved).map((a: any) => ({
+    id: a.id,
+    name: a.name,
+    role: a.role || 'معلق صوتي',
+    rating: a.rating || 5.0,
+    experience: a.experience || 'غير محدد',
+    language: a.language || 'عربية فصحى',
+    image: a.image || '',
+    audio: a.audio || `/audio/${a.slug}.mp3`,
+    isNew: true,
+  }));
+};
 
 export function Landing() {
   const navigate = useNavigate();
@@ -35,6 +51,7 @@ export function Landing() {
   const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [allArtists, setAllArtists] = useState(() => [...initialArtists, ...getNewArtists()]);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginUser, setLoginUser] = useState('');
@@ -44,6 +61,10 @@ export function Landing() {
   useEffect(() => {
     localStorage.setItem('voxdub_theme', themeColor);
   }, [themeColor]);
+
+  useEffect(() => {
+    setAllArtists([...initialArtists, ...getNewArtists()]);
+  }, []);
 
   const handleAdminLogin = () => {
     const success = login(loginUser, loginPass);
@@ -82,13 +103,18 @@ export function Landing() {
     toast.success("تم حفظ تعديلات الواجهة!");
   };
 
-  const toggleAudio = (id: number) => {
+  const toggleAudio = (artist: any) => {
+    const id = artist.id;
+    const audioUrl = artist.isNew
+      ? (artist.audio || "/audio/mustapha.mp3")
+      : (audioMap[id] || "/audio/mustapha.mp3");
+
     if (playingId === id) {
       currentAudio?.pause();
       setPlayingId(null);
     } else {
       if (currentAudio) currentAudio.pause();
-      const newAudio = new Audio(AUDIO_URL);
+      const newAudio = new Audio(audioUrl);
       newAudio.play().catch(() => toast.error("العينة غير متوفرة"));
       setCurrentAudio(newAudio);
       setPlayingId(id);
@@ -121,41 +147,19 @@ export function Landing() {
       `}</style>
 
       {showLoginModal && (
-        <div
-          className="login-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}
-        >
+        <div className="login-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}>
           <div className="login-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => { setShowLoginModal(false); setLoginError(''); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
+              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={22} color="#9ca3af" />
               </button>
               <div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>
-                  Vox<span style={{ color: themeColor }}>Dub</span>
-                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>Vox<span style={{ color: themeColor }}>Dub</span></div>
                 <p style={{ color: '#6b7280', fontSize: '14px', fontWeight: 700, margin: '4px 0 0' }}>دخول لوحة الإدارة</p>
               </div>
             </div>
-            <input
-              className="login-input"
-              type="text"
-              placeholder="اسم المستخدم"
-              value={loginUser}
-              onChange={(e) => setLoginUser(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-            />
-            <input
-              className="login-input"
-              type="password"
-              placeholder="كلمة السر"
-              value={loginPass}
-              onChange={(e) => setLoginPass(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-            />
+            <input className="login-input" type="text" placeholder="اسم المستخدم" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
+            <input className="login-input" type="password" placeholder="كلمة السر" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
             {loginError && <p className="login-error">{loginError}</p>}
             <button className="login-btn" onClick={handleAdminLogin}>دخول</button>
           </div>
@@ -170,57 +174,25 @@ export function Landing() {
           </div>
           <div className="flex items-center gap-4">
             {userRole === 'admin' && (
-              <Button
-                onClick={saveAllChanges}
-                className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700"
-              >
+              <Button onClick={saveAllChanges} className="bg-green-600 text-white gap-2 rounded-full font-black px-6 shadow-lg border-none hover:bg-green-700">
                 <Save size={18} /> حفظ التعديلات
               </Button>
             )}
             <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-              <button
-                onClick={() => {
-                  if (userRole === 'admin') {
-                    navigate('/dashboard');
-                  } else {
-                    setShowLoginModal(true);
-                  }
-                }}
-                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}
-              >
-                واجهة لميس
-              </button>
-              <button
-                onClick={() => { setUserRole('artist'); navigate('/login'); }}
-                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}
-              >
-                واجهة المعلق
-              </button>
-              <button
-                onClick={() => setUserRole('visitor')}
-                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}
-              >
-                زائر
-              </button>
+              <button onClick={() => { if (userRole === 'admin') { navigate('/dashboard'); } else { setShowLoginModal(true); } }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
+              <button onClick={() => { setUserRole('artist'); navigate('/login'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
+              <button onClick={() => setUserRole('visitor')} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}>زائر</button>
             </div>
           </div>
         </div>
       </nav>
 
       <section className="pt-32 pb-40 px-4 text-center">
-        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">
-          اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى
-        </h1>
-        <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">
-          نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.
-        </p>
+        <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
+        <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.</p>
         <div className="flex justify-center gap-6">
-          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">
-            اكتشف المبدعين
-          </a>
-          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">
-            باقاتنا
-          </a>
+          <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>
+          <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
         </div>
       </section>
 
@@ -237,16 +209,8 @@ export function Landing() {
                       <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: themeColor + '33' }}>
                         <IconComponent size={52} style={{ color: themeColor }} />
                       </div>
-                      <input
-                        value={item.t}
-                        onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }}
-                        className="editable-input text-2xl font-black"
-                      />
-                      <textarea
-                        value={item.d}
-                        onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }}
-                        className="editable-input text-stone-400 font-bold h-24 resize-none text-lg"
-                      />
+                      <input value={item.t} onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }} className="editable-input text-2xl font-black" />
+                      <textarea value={item.d} onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }} className="editable-input text-stone-400 font-bold h-24 resize-none text-lg" />
                     </div>
                   ) : (
                     <>
@@ -267,11 +231,9 @@ export function Landing() {
       <section id="artists" className="py-32 bg-stone-50 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
-          <p className="text-xl text-stone-500 font-bold mb-24">
-            اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين
-          </p>
+          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-right">
-            {initialArtists.map((artist) => (
+            {allArtists.map((artist) => (
               <div key={artist.id} className="bg-vox-primary rounded-[4rem] p-10 shadow-2xl relative overflow-hidden group transition-all hover:-translate-y-4 text-white">
                 <div className="flex justify-between items-start mb-8 relative z-10">
                   <Award size={32} className="opacity-50" />
@@ -295,14 +257,14 @@ export function Landing() {
                 </div>
                 <div className="space-y-4 relative z-10">
                   <button
-                    onClick={() => toggleAudio(artist.id)}
+                    onClick={() => toggleAudio(artist)}
                     className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}
                   >
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
                   <a
-                    href={`/dashboard/artists/${artist.id}`}
+                    href={artist.isNew ? '#' : `/dashboard/artists/${artist.id}`}
                     className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
                   >
                     الملف الشخصي
@@ -316,9 +278,7 @@ export function Landing() {
 
       <section id="workflow" className="py-32 bg-white text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-5xl font-black mb-24 italic text-stone-900">
-            كيف <span className="text-vox-primary">نعمل؟</span>
-          </h2>
+          <h2 className="text-5xl font-black mb-24 italic text-stone-900">كيف <span className="text-vox-primary">نعمل؟</span></h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
               { icon: Search, t: "1. اكتشف", d: "اختر الصوت المناسب لمشروعك." },
@@ -340,49 +300,20 @@ export function Landing() {
 
       <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">
-            باقاتنا الإبداعية
-          </h2>
+          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا الإبداعية</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
             {pricingData.map((plan: any, i: number) => (
-              <div
-                key={i}
-                className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">
-                    الأكثر طلباً
-                  </div>
-                )}
+              <div key={i} className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}>
+                {plan.popular && <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">الأكثر طلباً</div>}
                 {userRole === 'admin' ? (
                   <div className="space-y-3">
-                    <input
-                      value={plan.t}
-                      onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }}
-                      className="editable-input pricing-input text-2xl font-black text-stone-900"
-                    />
-                    <input
-                      value={plan.d}
-                      onChange={(e) => { const nd = [...pricingData]; nd[i].d = e.target.value; setPricingData(nd); }}
-                      className="editable-input pricing-input text-sm font-bold text-stone-400"
-                    />
+                    <input value={plan.t} onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-2xl font-black text-stone-900" />
+                    <input value={plan.d} onChange={(e) => { const nd = [...pricingData]; nd[i].d = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-sm font-bold text-stone-400" />
                     <div className="flex items-center justify-center gap-2 py-4">
-                      <input
-                        value={plan.p}
-                        onChange={(e) => { const nd = [...pricingData]; nd[i].p = e.target.value; setPricingData(nd); }}
-                        className="editable-input pricing-input text-4xl font-black text-vox-primary w-24"
-                      />
-                      <input
-                        value={plan.u}
-                        onChange={(e) => { const nd = [...pricingData]; nd[i].u = e.target.value; setPricingData(nd); }}
-                        className="editable-input pricing-input text-xs font-black text-stone-400 w-24"
-                      />
+                      <input value={plan.p} onChange={(e) => { const nd = [...pricingData]; nd[i].p = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-4xl font-black text-vox-primary w-24" />
+                      <input value={plan.u} onChange={(e) => { const nd = [...pricingData]; nd[i].u = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-xs font-black text-stone-400 w-24" />
                     </div>
-                    <textarea
-                      value={plan.f.join('\n')}
-                      onChange={(e) => { const nd = [...pricingData]; nd[i].f = e.target.value.split('\n'); setPricingData(nd); }}
-                      className="editable-input pricing-input text-stone-600 font-bold h-40 resize-none text-sm leading-relaxed"
-                    />
+                    <textarea value={plan.f.join('\n')} onChange={(e) => { const nd = [...pricingData]; nd[i].f = e.target.value.split('\n'); setPricingData(nd); }} className="editable-input pricing-input text-stone-600 font-bold h-40 resize-none text-sm leading-relaxed" />
                   </div>
                 ) : (
                   <>
@@ -401,12 +332,7 @@ export function Landing() {
                     </ul>
                   </>
                 )}
-                <a
-                  href="#contact"
-                  className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}
-                >
-                  اختيار الباقة
-                </a>
+                <a href="#contact" className={`w-full py-4 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-vox-primary text-white shadow-lg' : 'bg-stone-900 text-white'}`}>اختيار الباقة</a>
               </div>
             ))}
           </div>
@@ -420,12 +346,8 @@ export function Landing() {
       </section>
 
       <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
-        <div className="text-4xl font-black mb-8 italic text-white">
-          Vox<span className="text-vox-primary">Dub</span>
-        </div>
-        <p className="text-stone-600 font-bold italic">
-          إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio
-        </p>
+        <div className="text-4xl font-black mb-8 italic text-white">Vox<span className="text-vox-primary">Dub</span></div>
+        <p className="text-stone-600 font-bold italic">إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio</p>
       </footer>
     </div>
   );
