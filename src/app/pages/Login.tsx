@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
 
 const officialArtists = [
-  { id: "1", name: "مصطفى جغلال" },
+  { id: "1", name: "مصننننننننننطفى جغلال" },
   { id: "2", name: "لميس حميمي" },
   { id: "3", name: "بلهادي محمد إسلام" },
   { id: "4", name: "أحمد حاج إسماعيل" }
