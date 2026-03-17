@@ -28,13 +28,11 @@ export function ArtistProfile() {
   const [profile, setProfile] = useState({ ...artistData, bio: "" });
   const [language, setLanguage] = useState(artistData.lang);
   
-  // 🟢 التعديل الجوهري لتوحيد العينة الافتراضية مع صفحة الـ Landing
+  // 🟢 تعديل كلود: توحيد العينة الافتراضية للجميع بدون شروط
   const [samples, setSamples] = useState(() => {
     const saved = localStorage.getItem(`voxdub_samples_${id}`);
+    const defaultAudioUrl = "/audio/mustapha.mp3";
     
-    // تحديد الرابط الافتراضي بناءً على الفنان (مصطفى يأخذ ملفه الخاص، والبقية الرابط الخارجي مؤقتاً)
-    const defaultAudioUrl = id === "1" ? "/audio/mustapha.mp3" : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3";
-
     return saved ? JSON.parse(saved) : [
       { id: 1, title: `عينة العرض الرئيسية - ${artistData.name}`, url: defaultAudioUrl }
     ];
@@ -133,7 +131,6 @@ export function ArtistProfile() {
             <div className="space-y-6">
               <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
               
-              {/* زر الرفع للمشرفين فقط أو لنجربة التعديل المحلي */}
               <div className="bg-orange-50 text-orange-600 p-4 rounded-2xl text-sm font-bold border border-orange-100 flex items-center gap-2 mb-2">
                 <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في ملفك الشخصي فقط
               </div>
@@ -182,5 +179,5 @@ export function ArtistProfile() {
       </div>
     </div>
   );
-                }
-                                                                                          
+   }
+              
