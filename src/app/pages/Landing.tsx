@@ -24,14 +24,20 @@ export function Landing() {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
+  // 🟢 الحل الجذري: سحب كل من في الذاكرة (الجدد والقدامى) ثم إضافة أي معلق أساسي ناقص
   const [displayArtists, setDisplayArtists] = useState(() => {
     const saved = localStorage.getItem('voxdub_artists_v2');
     const savedArtists = saved ? JSON.parse(saved) : [];
     
-    return initialArtists.map(official => {
-      const modified = savedArtists.find((a: any) => String(a.id) === String(official.id));
-      return modified ? { ...official, ...modified } : official;
+    const combined = [...savedArtists];
+    initialArtists.forEach(official => {
+      if (!combined.find((a: any) => String(a.id) === String(official.id))) {
+        combined.push(official);
+      }
     });
+    
+    // ترتيبهم بناءً على ID أو تركهم بترتيب الإضافة وعرض غير المؤرشفين فقط
+    return combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived);
   });
 
   const [aboutData, setAboutData] = useState(() => {
@@ -53,15 +59,19 @@ export function Landing() {
   });
 
   useEffect(() => {
+    // 🟢 تحديث الواجهة فوراً عند إضافة معلق جديد
     const handleStorageChange = () => {
       const saved = localStorage.getItem('voxdub_artists_v2');
-      if (saved) {
-        const savedArtists = JSON.parse(saved);
-        setDisplayArtists(initialArtists.map(official => {
-          const modified = savedArtists.find((a: any) => String(a.id) === String(official.id));
-          return modified ? { ...official, ...modified } : official;
-        }));
-      }
+      const savedArtists = saved ? JSON.parse(saved) : [];
+      
+      const combined = [...savedArtists];
+      initialArtists.forEach(official => {
+        if (!combined.find((a: any) => String(a.id) === String(official.id))) {
+          combined.push(official);
+        }
+      });
+      
+      setDisplayArtists(combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived));
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -89,7 +99,6 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
-      {/* 🟢 فرض خط كايرو على كل العناصر في الواجهة */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
         *, body, div, p, h1, h2, h3, span, button, input, textarea { font-family: 'Cairo', sans-serif !important; }
@@ -116,7 +125,6 @@ export function Landing() {
               </Button>
             )}
             <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-              {/* 🟢 تسجيل الصلاحيات في الذاكرة قبل الانتقال */}
               <button onClick={() => { 
                   localStorage.setItem('voxdub_user_role', 'admin'); 
                   setUserRole('admin'); 
