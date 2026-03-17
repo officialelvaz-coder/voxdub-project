@@ -27,24 +27,40 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
 ];
 
-const originalIds = [1, 2, 3, 4, 5, 6];
-
-const getNewArtists = () => {
+// 🟢 دالة الدمج الذكية: تدمج التعديلات للمعلقين القدامى، وتضيف الجدد
+const getMergedArtists = () => {
   const saved = localStorage.getItem('voxdub_artists_v2');
-  if (!saved) return [];
-  return JSON.parse(saved)
-    .filter((a: any) => !originalIds.includes(Number(a.id)))
-    .map((a: any) => ({
-      id: a.id,
-      name: a.name,
-      role: a.role || 'معلق صوتي',
-      rating: a.rating || 5.0,
-      experience: a.experience || 'غير محدد',
-      language: a.language || 'عربية فصحى',
-      image: a.image || '',
-      audio: a.audio || `/audio/${a.slug}.mp3`,
-      isNew: true,
-    }));
+  const savedArtists = saved ? JSON.parse(saved) : [];
+
+  const combinedMap = new Map();
+
+  // 1. نضع القائمة الأصلية كقاعدة
+  initialArtists.forEach(a => combinedMap.set(String(a.id), a));
+
+  // 2. نقوم بتركيب التعديلات المحفوظة فوقهم، أو إضافة معلقين جدد
+  savedArtists.forEach((a: any) => {
+    const existing = combinedMap.get(String(a.id));
+    if (existing) {
+      combinedMap.set(String(a.id), { ...existing, ...a }); // دمج التعديل للموجودين
+    } else {
+      combinedMap.set(String(a.id), {
+        id: a.id,
+        name: a.name,
+        role: a.role || 'معلق صوتي',
+        rating: a.rating || 5.0,
+        experience: a.experience || 'غير محدد',
+        language: a.language || 'عربية فصحى',
+        image: a.image || '',
+        audio: a.audio || `/audio/${a.slug || 'mustapha'}.mp3`,
+        isNew: true,
+        isArchived: a.isArchived || false
+      }); // إضافة الجديد
+    }
+  });
+
+  return Array.from(combinedMap.values())
+    .filter((a: any) => !a.isArchived)
+    .sort((a: any, b: any) => Number(a.id) - Number(b.id));
 };
 
 export function Landing() {
@@ -55,7 +71,9 @@ export function Landing() {
   const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-  const [allArtists, setAllArtists] = useState(() => [...initialArtists, ...getNewArtists()]);
+  
+  // 🟢 استدعاء قائمة المعلقين المدموجة
+  const [allArtists, setAllArtists] = useState(getMergedArtists);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginUser, setLoginUser] = useState('');
@@ -67,7 +85,12 @@ export function Landing() {
   }, [themeColor]);
 
   useEffect(() => {
-    setAllArtists([...initialArtists, ...getNewArtists()]);
+    // 🟢 تحديث الواجهة فوراً عند حفظ أي تعديل في الملف الشخصي
+    const handleStorageChange = () => {
+      setAllArtists(getMergedArtists());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleAdminLogin = () => {
@@ -109,9 +132,8 @@ export function Landing() {
 
   const toggleAudio = (artist: any) => {
     const id = artist.id;
-    const audioUrl = artist.isNew
-      ? (artist.audio || "/audio/mustapha.mp3")
-      : (audioMap[id] || "/audio/mustapha.mp3");
+    // 🟢 احترام العينة الصوتية المعدلة في الملف الشخصي أولاً، ثم الماب، ثم الافتراضي
+    const audioUrl = artist.audio || audioMap[id] || "/audio/mustapha.mp3";
 
     if (playingId === id) {
       currentAudio?.pause();
@@ -251,8 +273,8 @@ export function Landing() {
                   </div>
                 </div>
                 <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner">
-                  <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200">
-                    <img src={artist.image} className="w-full h-full object-cover" alt="" />
+                  <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200 flex items-center justify-center">
+                    <img src={artist.image || '/images/default.jpg'} className="w-full h-full object-cover" alt={artist.name} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: 3rem; font-weight: 900; color: #9ca3af;">${artist.name?.charAt(0)}</span>`; }} />
                   </div>
                   <div className="text-right text-white/90 text-sm font-bold space-y-1">
                     <p>الخبرة: <span className="text-white">{artist.experience}</span></p>
@@ -268,7 +290,7 @@ export function Landing() {
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
                   <a
-                    href={artist.isNew ? '#' : `/dashboard/artists/${artist.id}`}
+                    href={userRole === 'visitor' ? '#' : `/dashboard/artists/${artist.id}`}
                     className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
                   >
                     الملف الشخصي
