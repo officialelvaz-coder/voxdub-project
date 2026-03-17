@@ -4,11 +4,10 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { 
   UploadCloud, Save, Home, Play, Pause, Trash2, 
-  User, Music, Star, CheckCircle2, Clock, FolderKanban 
+  User, Music, Star, CheckCircle2, Clock, FolderKanban, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// القائمة الرسمية
 const officialArtists = [
   { id: "1", name: "مصطفى جغلال", role: "صوت احترافي ومتزن", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", isArchived: false },
   { id: "2", name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", isArchived: false },
@@ -23,7 +22,13 @@ export function ArtistProfile() {
   const navigate = useNavigate();
   const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
 
-  // 🟢 استرجاع بيانات الفنان من الذاكرة لضمان تطبيق التعديلات السابقة
+  // 🟢 نظام الصلاحيات
+  const userRole = localStorage.getItem('voxdub_user_role') || 'admin';
+  const loggedInArtistId = localStorage.getItem('voxdub_logged_in_id') || "1"; // نفترض أنك المعلق المسجل حالياً
+  
+  // يحق التعديل للمديرة (لميس) على كل الملفات، أو للمعلق على ملفه فقط
+  const canEdit = userRole === 'admin' || (userRole === 'artist' && loggedInArtistId === String(id));
+
   const [profile, setProfile] = useState(() => {
     const savedArtists = localStorage.getItem('voxdub_artists_v2');
     const parsedArtists = savedArtists ? JSON.parse(savedArtists) : [];
@@ -75,7 +80,6 @@ export function ArtistProfile() {
     }
   };
 
-  // 🟢 زر الحفظ الآن يقوم بتحديث قائمة المعلقين بأكملها في الموقع
   const handleSaveProfile = () => {
     const savedArtists = localStorage.getItem('voxdub_artists_v2');
     let artistsArray = savedArtists ? JSON.parse(savedArtists) : [...officialArtists];
@@ -88,7 +92,7 @@ export function ArtistProfile() {
     }
     
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(artistsArray));
-    toast.success("تم حفظ تعديلات الملف الشخصي بنجاح!");
+    toast.success("تم حفظ التعديلات بنجاح!");
   };
 
   return (
@@ -98,35 +102,54 @@ export function ArtistProfile() {
       {/* Header */}
       <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-stone-100 mt-6">
         <Button onClick={() => navigate('/dashboard/artists')} variant="ghost" className="font-black text-stone-400 hover:text-vox-primary"><Home className="ml-2" /> العودة للقائمة</Button>
-        <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black border-none shadow-xl hover:opacity-90 transition-all">
-          <Save className="ml-2" /> حفظ التغييرات
-        </Button>
+        
+        {/* 🟢 زر الحفظ يظهر فقط للمديرة لميس أو لصاحب الملف */}
+        {canEdit && (
+          <Button onClick={handleSaveProfile} className="bg-vox-primary text-white rounded-2xl px-10 py-6 font-black border-none shadow-xl hover:opacity-90 transition-all">
+            <Save className="ml-2" /> حفظ التغييرات
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center">
-            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner">
+          <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center relative">
+            {/* إشعار حالة الصلاحية */}
+            {canEdit && (
+              <span className="absolute top-6 right-6 bg-green-100 text-green-700 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1">
+                <ShieldCheck size={14} /> وضع التعديل
+              </span>
+            )}
+            
+            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner mt-4">
                <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl font-black text-stone-300 bg-stone-100">${profile.name?.charAt(0)}</div>`; }} />
             </div>
             
-            {/* 🟢 حقل تعديل الاسم */}
-            <input 
-              value={profile.name}
-              onChange={(e) => setProfile({...profile, name: e.target.value})}
-              className="text-2xl font-black text-center bg-transparent border-b-2 border-dashed border-stone-200 focus:border-stone-400 outline-none w-full max-w-[200px] mb-2 px-2 py-1 transition-colors"
-              placeholder="اسم المعلق"
-            />
+            {/* 🟢 عرض الاسم: حقل إدخال للمديرة/المعلق، ونص ثابت للزائر */}
+            {canEdit ? (
+              <input 
+                value={profile.name}
+                onChange={(e) => setProfile({...profile, name: e.target.value})}
+                className="text-2xl font-black text-center bg-transparent border-b-2 border-dashed border-stone-200 focus:border-stone-400 outline-none w-full max-w-[200px] mb-2 px-2 py-1 transition-colors block mx-auto"
+                placeholder="اسم المعلق"
+              />
+            ) : (
+              <h2 className="text-2xl font-black mb-2">{profile.name}</h2>
+            )}
             
-            {/* 🟢 حقل تعديل الدور (مثل: صوت درامي ومؤثر) */}
-            <input 
-              value={profile.role}
-              onChange={(e) => setProfile({...profile, role: e.target.value})}
-              className="font-bold italic text-center bg-transparent border-b-2 border-dashed border-stone-200 outline-none w-full max-w-[250px] px-2 py-1 transition-colors"
-              style={{ color: themeColor, borderBottomColor: `${themeColor}40` }}
-              placeholder="الدور أو الصفة"
-            />
+            {/* 🟢 عرض الدور: حقل إدخال للمديرة/المعلق، ونص ثابت للزائر */}
+            {canEdit ? (
+              <input 
+                value={profile.role}
+                onChange={(e) => setProfile({...profile, role: e.target.value})}
+                className="font-bold italic text-center bg-transparent border-b-2 border-dashed border-stone-200 outline-none w-full max-w-[250px] px-2 py-1 transition-colors block mx-auto"
+                style={{ color: themeColor, borderBottomColor: `${themeColor}40` }}
+                placeholder="الدور أو الصفة"
+              />
+            ) : (
+              <p className="font-bold italic" style={{ color: themeColor }}>{profile.role}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -151,25 +174,37 @@ export function ArtistProfile() {
           <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-stone-100 space-y-8">
             <div className="space-y-3">
               <h3 className="text-lg font-black flex items-center gap-2"><User className="text-vox-primary" /> النبذة التعريفية</h3>
-              <Textarea 
-                value={profile.bio} 
-                onChange={(e)=>setProfile({...profile, bio: e.target.value})} 
-                className="bg-stone-50 border-none rounded-2xl p-6 font-bold min-h-[120px] outline-none resize-none focus:ring-2 ring-stone-200 transition-all" 
-                placeholder="اكتب نبذة عن المعلق هنا..."
-              />
+              
+              {/* 🟢 عرض النبذة: نص قابل للتعديل لمن يملك الصلاحية، ونص ثابت للقراءة للزائر */}
+              {canEdit ? (
+                <Textarea 
+                  value={profile.bio} 
+                  onChange={(e)=>setProfile({...profile, bio: e.target.value})} 
+                  className="bg-stone-50 border-none rounded-2xl p-6 font-bold min-h-[120px] outline-none resize-none focus:ring-2 ring-stone-200 transition-all text-stone-700 leading-relaxed" 
+                  placeholder="اكتب نبذة عن المعلق هنا..."
+                />
+              ) : (
+                <p className="bg-stone-50 border border-stone-100 rounded-2xl p-6 font-bold min-h-[120px] text-stone-700 leading-relaxed">
+                  {profile.bio || "لا توجد نبذة تعريفية مسجلة بعد."}
+                </p>
+              )}
             </div>
 
             <div className="space-y-6">
               <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
               
-              <div className="bg-purple-50 text-purple-700 p-4 rounded-2xl text-sm font-bold border border-purple-100 flex items-center gap-2 mb-2">
-                <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في ملفك الشخصي
-              </div>
-              
-              <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black border-none shadow-lg hover:opacity-90 transition-all">
-                <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة
-              </Button>
-              <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
+              {/* 🟢 زر رفع العينات يظهر فقط لمن يملك الصلاحية */}
+              {canEdit && (
+                <>
+                  <div className="bg-purple-50 text-purple-700 p-4 rounded-2xl text-sm font-bold border border-purple-100 flex items-center gap-2 mb-2">
+                    <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في هذا الملف
+                  </div>
+                  <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black border-none shadow-lg hover:opacity-90 transition-all">
+                    <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة
+                  </Button>
+                  <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
+                </>
+              )}
               
               <div className="space-y-4">
                 {samples.map((s: any) => (
@@ -180,12 +215,15 @@ export function ArtistProfile() {
                       </Button>
                       <span className="font-black truncate max-w-[200px] md:max-w-md">{s.title}</span>
                     </div>
-                    <button onClick={() => {
-                      const updated = samples.filter(x => x.id !== s.id);
-                      setSamples(updated);
-                      localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-                      toast.success("تم حذف العينة");
-                    }} className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
+                    {/* 🟢 زر الحذف يظهر فقط لمن يملك الصلاحية */}
+                    {canEdit && (
+                      <button onClick={() => {
+                        const updated = samples.filter(x => x.id !== s.id);
+                        setSamples(updated);
+                        localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
+                        toast.success("تم حذف العينة");
+                      }} className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
+                    )}
                   </div>
                 ))}
               </div>
