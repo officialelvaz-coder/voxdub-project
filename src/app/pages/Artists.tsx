@@ -405,8 +405,7 @@ export function Artists() {
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 flex-shrink-0">
                   {artist.image && !artist.image.startsWith('/images/') ? (
-                    <img src={artist.image} classN
-<img src={artist.image} className="w-full h-full object-cover" alt="" />
+                    <img src={artist.image} className="w-full h-full object-cover" alt="" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-2xl font-black text-stone-300">
                       {artist.name?.charAt(0)}
