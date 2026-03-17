@@ -1,40 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import { 
-  Search, UserPlus, Trash2, Play, Pause, Camera, Music, Upload, 
-  FileAudio, CheckCircle2, Headset, Mic, X, CloudUpload, 
+  Search, UserPlus, Trash2, Play, Pause, Upload, 
+  CheckCircle2, Headset, Mic, X, CloudUpload, 
   Home, Archive, RotateCcw 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// القائمة الرسمية التي أردتها
+const officialArtists = [
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", audio: "/audio/mustapha.mp3", isArchived: false },
+  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", audio: "/audio/mustapha.mp3", isArchived: false },
+  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
+  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false },
+  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", gender: "أنثى", experience: "5 سنوات", image: "/images/manal.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
+  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", gender: "ذكر", experience: "10 سنوات", image: "/images/adam.jpg", language: "عربي فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false }
+];
+
 const arabicToSlug = (name: string): string => {
   const firstWord = name.trim().split(' ')[0];
   const map: Record<string, string> = {
-    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'a',
-    'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j',
-    'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z',
-    'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
-    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z',
-    'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
-    'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
-    'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a',
+    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j',
+    'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
+    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
+    'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a',
     'ة': 'a', 'ء': 'a', 'ئ': 'y', 'ؤ': 'w',
   };
   return firstWord.split('').map(c => map[c] || '').join('').toLowerCase();
 };
 
-function AudioUploadModal({ isOpen, onClose, onUpload, themeColor, currentAudioName }: {
+function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (dataUrl: string, fileName: string) => void;
   themeColor: string;
-  currentAudioName?: string;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
@@ -83,7 +86,7 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor, currentAudioN
     >
       <div className="relative w-full max-w-lg mx-4 rounded-[2.5rem] overflow-hidden" style={{ background: '#111' }}>
         <div className="relative px-10 pt-10 pb-6" style={{ background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)' }}>
-          <button onClick={onClose} className="absolute top-6 left-6 w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white/70">
+          <button onClick={onClose} className="absolute top-6 left-6 w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all">
             <X size={18} />
           </button>
           <div className="flex items-center gap-4">
@@ -133,8 +136,8 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor, currentAudioN
             </div>
           </div>
           <div className="flex gap-4">
-            <button onClick={onClose} className="flex-1 h-14 rounded-2xl font-black text-white/50 border border-white/10" style={{ background: '#1c1c1c' }}>إلغاء</button>
-            <button onClick={handleConfirm} disabled={!previewFile} className="h-14 rounded-2xl font-black text-white transition-all disabled:opacity-30" style={{ background: previewFile ? themeColor : '#333', flex: 2 }}>
+            <button onClick={onClose} className="flex-1 h-14 rounded-2xl font-black text-white/50 border border-white/10 hover:bg-white/5 transition-all" style={{ background: '#1c1c1c' }}>إلغاء</button>
+            <button onClick={handleConfirm} disabled={!previewFile} className="h-14 rounded-2xl font-black text-white transition-all disabled:opacity-30 hover:opacity-90" style={{ background: previewFile ? themeColor : '#333', flex: 2 }}>
               {previewFile ? 'تأكيد واعتماد العينة' : 'اختر ملفاً أولاً'}
             </button>
           </div>
@@ -155,12 +158,12 @@ export function Artists() {
     language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '',
   });
   
-  // 🟢 استرجاع المعلقين القدامى كما طلبت تماماً
+  // استدعاء القائمة الرسمية
   const [artists, setArtists] = useState(() => {
     const saved = localStorage.getItem('voxdub_artists_v2');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : officialArtists;
   });
-  
+
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#e11d48');
@@ -175,15 +178,6 @@ export function Artists() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setNewArtist({ ...newArtist, image: reader.result as string });
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleAudioConfirm = (dataUrl: string, fileName: string) => {
     setNewArtist((prev) => ({ ...prev, audio: dataUrl, audioName: fileName }));
@@ -201,8 +195,8 @@ export function Artists() {
       id: Date.now(),
       rating: 5.0,
       slug,
-      audio: newArtist.audio || `/audio/${slug}.mp3`,
-      audioName: newArtist.audioName || `${slug}.mp3`,
+      audio: newArtist.audio || "/audio/mustapha.mp3",
+      audioName: newArtist.audioName || `عينة ${newArtist.name}`,
       image: newArtist.image || `/images/${slug}.jpg`,
       experience: newArtist.experienceYears ? `${newArtist.experienceYears} سنوات` : 'غير محدد',
       language: newArtist.language || 'عربية فصحى',
@@ -211,9 +205,6 @@ export function Artists() {
     const updatedArtists = [artistToAdd, ...artists];
     setArtists(updatedArtists);
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(updatedArtists));
-    localStorage.setItem(`voxdub_samples_${artistToAdd.id}`, JSON.stringify([
-      { id: 1, title: `عينة ${newArtist.name}`, url: artistToAdd.audio }
-    ]));
     setIsAddDialogOpen(false);
     setNewArtist({ name: '', role: '', gender: '', experienceYears: '', language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '' });
     toast.success(`تمت إضافة ${newArtist.name} بنجاح`);
@@ -223,7 +214,6 @@ export function Artists() {
     const updated = artists.filter((a: any) => a.id !== id);
     setArtists(updated);
     localStorage.setItem('voxdub_artists_v2', JSON.stringify(updated));
-    localStorage.removeItem(`voxdub_samples_${id}`);
     toast.success('تم حذف المعلق');
   };
 
@@ -245,7 +235,7 @@ export function Artists() {
       setPlayingId(null); 
     } else {
       if (currentAudio) currentAudio.pause();
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(audioUrl || "/audio/mustapha.mp3");
       audio.play().catch(() => toast.error('العينة غير متوفرة'));
       setCurrentAudio(audio);
       setPlayingId(id);
@@ -263,9 +253,6 @@ export function Artists() {
     <div className="p-4 space-y-6 text-right" dir="rtl">
       <style>{`
         .vox-gradient-header { background: linear-gradient(135deg, #1c1917 0%, #44403c 100%); }
-        .gender-btn { transition: all 0.2s ease; border: 2.5px solid #e5e7eb; }
-        .gender-btn.active { border-color: ${themeColor}; color: ${themeColor}; background: ${themeColor}12; font-weight: 900; }
-        .gender-btn:hover:not(.active) { border-color: #d1d5db; background: #f9fafb; }
       `}</style>
 
       <AudioUploadModal
@@ -273,17 +260,16 @@ export function Artists() {
         onClose={() => setIsAudioModalOpen(false)}
         onUpload={handleAudioConfirm}
         themeColor={themeColor}
-        currentAudioName={newArtist.audioName}
       />
 
-      {/* 🟢 زر العودة للرئيسية */}
+      {/* زر العودة للرئيسية */}
       <div className="mb-6">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/')} 
           className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 hover:text-stone-900 transition-all font-bold shadow-sm"
         >
           <Home size={20} />
-          الصفحة الرئيسية
+          العودة للواجهة الرئيسية
         </button>
       </div>
 
@@ -301,7 +287,7 @@ export function Artists() {
             <div className="vox-gradient-header p-10 text-white relative">
               <Headset className="absolute left-10 top-10 opacity-10" size={120} />
               <h2 className="text-3xl font-black mb-2">تسجيل معلق جديد</h2>
-              <p className="text-stone-400 font-bold italic">يكفي الاسم للبدء — بقية التفاصيل في الملف الشخصي</p>
+              <p className="text-stone-400 font-bold italic">يكفي الاسم للبدء — بقية التفاصيل لاحقاً</p>
             </div>
             <div className="p-10 space-y-6">
               <div>
@@ -365,25 +351,20 @@ export function Artists() {
           <p className="font-black text-xl">
             {showArchived ? 'لا يوجد معلقون في الأرشيف بعد' : 'لا يوجد معلقون نشطون بعد'}
           </p>
-          {!showArchived && (
-            <p className="font-bold text-sm mt-2">اضغط على "إضافة مؤدي للمنصة" للبدء</p>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredArtists.map((artist: any) => (
             <div key={artist.id} className="bg-white rounded-[2.5rem] p-6 border border-stone-100 shadow-sm hover:shadow-xl transition-all">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 flex-shrink-0">
+              <div className="flex items-center gap-4 mb-6 cursor-pointer" onClick={() => navigate(`/dashboard/artists/${artist.id}`)}>
+                <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 flex-shrink-0 border-2 border-transparent hover:border-stone-200 transition-all">
                   {artist.image && !artist.image.startsWith('/images/') ? (
                     <img src={artist.image} className="w-full h-full object-cover" alt="" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl font-black text-stone-300">
-                      {artist.name?.charAt(0)}
-                    </div>
+                    <img src={artist.image || '/images/default.jpg'} className="w-full h-full object-cover" alt={artist.name} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-2xl font-black text-stone-300">${artist.name?.charAt(0)}</div>`; }} />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/dashboard/artists/${artist.id}`)}>
+                <div className="flex-1 min-w-0">
                   <h3 className="font-black text-stone-900 truncate hover:text-stone-600 transition-colors">{artist.name}</h3>
                   <p className="text-sm font-bold truncate" style={{ color: themeColor }}>{artist.role || 'معلق صوتي'}</p>
                   <p className="text-xs text-stone-400 font-bold">{artist.experience || 'خبرة غير محددة'}</p>
@@ -392,7 +373,7 @@ export function Artists() {
               <div className="flex gap-3">
                 <button
                   onClick={() => toggleAudio(artist.id, artist.audio)}
-                  className="flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2"
+                  className="flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2 hover:opacity-90 transition-all"
                   style={{ backgroundColor: playingId === artist.id ? '#1c1917' : themeColor }}
                 >
                   {playingId === artist.id ? <><Pause size={16} /> إيقاف</> : <><Play size={16} /> استمع</>}
