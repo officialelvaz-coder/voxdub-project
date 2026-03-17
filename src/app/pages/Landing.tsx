@@ -27,21 +27,18 @@ const initialArtists = [
   { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
 ];
 
-// 🟢 دالة الدمج الذكية: تدمج التعديلات للمعلقين القدامى، وتضيف الجدد
 const getMergedArtists = () => {
   const saved = localStorage.getItem('voxdub_artists_v2');
   const savedArtists = saved ? JSON.parse(saved) : [];
 
   const combinedMap = new Map();
 
-  // 1. نضع القائمة الأصلية كقاعدة
   initialArtists.forEach(a => combinedMap.set(String(a.id), a));
 
-  // 2. نقوم بتركيب التعديلات المحفوظة فوقهم، أو إضافة معلقين جدد
   savedArtists.forEach((a: any) => {
     const existing = combinedMap.get(String(a.id));
     if (existing) {
-      combinedMap.set(String(a.id), { ...existing, ...a }); // دمج التعديل للموجودين
+      combinedMap.set(String(a.id), { ...existing, ...a });
     } else {
       combinedMap.set(String(a.id), {
         id: a.id,
@@ -54,7 +51,7 @@ const getMergedArtists = () => {
         audio: a.audio || `/audio/${a.slug || 'mustapha'}.mp3`,
         isNew: true,
         isArchived: a.isArchived || false
-      }); // إضافة الجديد
+      });
     }
   });
 
@@ -72,7 +69,6 @@ export function Landing() {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   
-  // 🟢 استدعاء قائمة المعلقين المدموجة
   const [allArtists, setAllArtists] = useState(getMergedArtists);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -85,7 +81,6 @@ export function Landing() {
   }, [themeColor]);
 
   useEffect(() => {
-    // 🟢 تحديث الواجهة فوراً عند حفظ أي تعديل في الملف الشخصي
     const handleStorageChange = () => {
       setAllArtists(getMergedArtists());
     };
@@ -132,7 +127,6 @@ export function Landing() {
 
   const toggleAudio = (artist: any) => {
     const id = artist.id;
-    // 🟢 احترام العينة الصوتية المعدلة في الملف الشخصي أولاً، ثم الماب، ثم الافتراضي
     const audioUrl = artist.audio || audioMap[id] || "/audio/mustapha.mp3";
 
     if (playingId === id) {
@@ -289,12 +283,13 @@ export function Landing() {
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
-                  <a
-                    href={userRole === 'visitor' ? '#' : `/dashboard/artists/${artist.id}`}
+                  {/* 🟢 التعديل الأهم: الزر الآن يأخذ الجميع للملف الشخصي بشكل صحيح */}
+                  <button
+                    onClick={() => navigate(`/dashboard/artists/${artist.id}`)}
                     className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
                   >
                     الملف الشخصي
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
