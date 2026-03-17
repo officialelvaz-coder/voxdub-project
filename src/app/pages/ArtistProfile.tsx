@@ -28,29 +28,30 @@ export function ArtistProfile() {
   const [profile, setProfile] = useState({ ...artistData, bio: "" });
   const [language, setLanguage] = useState(artistData.lang);
   
-  // 🟢 استرجاع العينات المحفوظة أو استخدام الافتراضية
+  // 🟢 التعديل الجوهري لتوحيد العينة الافتراضية مع صفحة الـ Landing
   const [samples, setSamples] = useState(() => {
     const saved = localStorage.getItem(`voxdub_samples_${id}`);
+    
+    // تحديد الرابط الافتراضي بناءً على الفنان (مصطفى يأخذ ملفه الخاص، والبقية الرابط الخارجي مؤقتاً)
+    const defaultAudioUrl = id === "1" ? "/audio/mustapha.mp3" : "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3";
+
     return saved ? JSON.parse(saved) : [
-      { id: 1, title: `عينة افتراضية - ${artistData.name}`, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" }
+      { id: 1, title: `عينة العرض الرئيسية - ${artistData.name}`, url: defaultAudioUrl }
     ];
   });
 
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [newAudioTitle, setNewAudioTitle] = useState('');
 
   useEffect(() => {
     const active = officialArtists.find(a => a.id === String(id)) || officialArtists[0];
     setProfile({
       ...active,
-      bio: id === "1" ? (localStorage.getItem('voxdub_artist_bio') || "معلق صوتي محترف...") : `مؤدي صوتي متميز في منصة VoxDub.`
+      bio: id === "1" ? (localStorage.getItem('voxdub_artist_bio') || "معلق صوتي محترف، رائد فن الحكي والتعليق الإبداعي. أقدم لك صوتاً لا يُنسى لمشروعك.") : `مؤدي صوتي متميز في منصة VoxDub.`
     });
     setLanguage(id === "1" ? (localStorage.getItem('voxdub_artist_lang') || active.lang) : active.lang);
   }, [id]);
 
-  // 🟢 وظيفة الرفع مع الحفظ الدائم
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -73,7 +74,7 @@ export function ArtistProfile() {
     else {
       if (audioInstance) audioInstance.pause();
       const audio = new Audio(url);
-      audio.play().catch(() => toast.error("خطأ في التشغيل"));
+      audio.play().catch(() => toast.error("عذراً، العينة غير متوفرة حالياً"));
       setAudioInstance(audio); setPlayingId(sid);
       audio.onended = () => setPlayingId(null);
     }
@@ -104,7 +105,6 @@ export function ArtistProfile() {
             <p className="text-vox-primary font-bold italic">{profile.role}</p>
           </div>
 
-          {/* 🟢 استعادة قسم المشاريع */}
           <div className="grid grid-cols-1 gap-4">
              {[
                { label: "مشاريع جديدة", count: id === "1" ? 5 : 2, icon: FolderKanban, color: "#0ea5e9" },
@@ -130,13 +130,19 @@ export function ArtistProfile() {
               <Textarea value={profile.bio} onChange={(e)=>setProfile({...profile, bio: e.target.value})} className="bg-stone-50 border-none rounded-2xl p-6 font-bold min-h-[120px] outline-none" />
             </div>
 
-            {/* 🟢 معرض العينات */}
             <div className="space-y-6">
               <h3 className="text-xl font-black flex items-center gap-2"><Music className="text-vox-primary" /> معرض العينات الصوتية</h3>
+              
+              {/* زر الرفع للمشرفين فقط أو لنجربة التعديل المحلي */}
+              <div className="bg-orange-50 text-orange-600 p-4 rounded-2xl text-sm font-bold border border-orange-100 flex items-center gap-2 mb-2">
+                <UploadCloud size={18} /> يمكنك رفع عينات إضافية لتظهر في ملفك الشخصي فقط
+              </div>
+              
               <Button onClick={() => document.getElementById('file-up')?.click()} className="bg-vox-primary text-white w-full h-16 rounded-2xl font-black border-none shadow-lg">
-                <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة (للحفظ الدائم)
+                <UploadCloud className="ml-2" /> ارفع عينة صوتية جديدة (للملف الشخصي)
               </Button>
               <input type="file" id="file-up" hidden accept="audio/*" onChange={handleFileUpload} />
+              
               <div className="space-y-4">
                 {samples.map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between p-5 bg-stone-50 rounded-[2rem] border border-stone-100">
@@ -150,7 +156,8 @@ export function ArtistProfile() {
                       const updated = samples.filter(x => x.id !== s.id);
                       setSamples(updated);
                       localStorage.setItem(`voxdub_samples_${id}`, JSON.stringify(updated));
-                    }} className="text-red-400 p-2"><Trash2 size={20} /></button>
+                      toast.success("تم حذف العينة محلياً");
+                    }} className="text-red-400 p-2 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
                   </div>
                 ))}
               </div>
@@ -158,7 +165,6 @@ export function ArtistProfile() {
 
             <hr className="border-stone-50" />
 
-            {/* 🟢 استعادة التقييمات (قالوا عنه) */}
             <div className="space-y-6 pt-4">
               <h3 className="text-xl font-black flex items-center gap-2"><Star className="text-yellow-500 fill-yellow-500" /> قالوا عن {profile.name.split(' ')[0]}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,4 +182,5 @@ export function ArtistProfile() {
       </div>
     </div>
   );
-}
+                }
+                                                                                          
