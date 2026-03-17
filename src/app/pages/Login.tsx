@@ -7,6 +7,8 @@ const defaultArtists = [
   { id: "2", name: "لميس حميمي" },
   { id: "3", name: "بلهادي محمد إسلام" },
   { id: "4", name: "أحمد حاج إسماعيل" }
+    { id: "4", name: "زب زبي" }
+
 ];
 
 export function Login() {
