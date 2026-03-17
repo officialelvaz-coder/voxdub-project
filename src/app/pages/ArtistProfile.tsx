@@ -38,9 +38,7 @@ export function ArtistProfile() {
   "4": "/audio/ahmed.mp3",
   "5": "/audio/manel.mp3",
   "6": "/audio/adem.mp3",
-};
-const defaultAudioUrl = audioMap[String(id)] || "/audio/mustapha.mp3";
-    
+};   
     return saved ? JSON.parse(saved) : [
       { id: 1, title: `عينة العرض الرئيسية - ${artistData.name}`, url: defaultAudioUrl }
     ];
