@@ -406,3 +406,38 @@ export function Artists() {
                 <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 flex-shrink-0">
                   {artist.image && !artist.image.startsWith('/images/') ? (
                     <img src={artist.image} classN
+<img src={artist.image} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl font-black text-stone-300">
+                      {artist.name?.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-stone-900 truncate">{artist.name}</h3>
+                  <p className="text-sm font-bold truncate" style={{ color: themeColor }}>{artist.role || 'معلق صوتي'}</p>
+                  <p className="text-xs text-stone-400 font-bold">{artist.experience || 'خبرة غير محددة'}</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => toggleAudio(artist.id, artist.audio)}
+                  className="flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2"
+                  style={{ backgroundColor: playingId === artist.id ? '#1c1917' : themeColor }}
+                >
+                  {playingId === artist.id ? <><Pause size={16} /> إيقاف</> : <><Play size={16} /> استمع</>}
+                </button>
+                <button
+                  onClick={() => handleDeleteArtist(artist.id)}
+                  className="w-12 h-12 rounded-2xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
