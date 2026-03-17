@@ -5,7 +5,6 @@ import {
   CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
-
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 
@@ -21,26 +20,18 @@ const initialArtists = [
 export function Landing() {
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(() => (localStorage.getItem('voxdub_user_role') as any) || 'admin');
-  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#e11d48');
-  
+  const [themeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#e11d48');
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // 🟢 السر هنا: دمج الذاكرة مع القائمة الرسمية لكي لا يختفي أحد أبداً
   const [displayArtists, setDisplayArtists] = useState(() => {
     const saved = localStorage.getItem('voxdub_artists_v2');
     const savedArtists = saved ? JSON.parse(saved) : [];
     
-    const combined = [...savedArtists];
-    initialArtists.forEach(official => {
-      // إذا لم يكن المعلق الرسمي موجوداً في الذاكرة، أضفه
-      if (!combined.find((a: any) => String(a.id) === String(official.id))) {
-        combined.push(official);
-      }
+    return initialArtists.map(official => {
+      const modified = savedArtists.find((a: any) => String(a.id) === String(official.id));
+      return modified ? { ...official, ...modified } : official;
     });
-    
-    // ترتيبهم وعرض غير المؤرشفين فقط
-    return combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived);
   });
 
   const [aboutData, setAboutData] = useState(() => {
@@ -62,19 +53,15 @@ export function Landing() {
   });
 
   useEffect(() => {
-    // 🟢 تحديث الواجهة فوراً مع نفس منطق الدمج
     const handleStorageChange = () => {
       const saved = localStorage.getItem('voxdub_artists_v2');
-      const savedArtists = saved ? JSON.parse(saved) : [];
-      
-      const combined = [...savedArtists];
-      initialArtists.forEach(official => {
-        if (!combined.find((a: any) => String(a.id) === String(official.id))) {
-          combined.push(official);
-        }
-      });
-      
-      setDisplayArtists(combined.sort((a, b) => Number(a.id) - Number(b.id)).filter((a: any) => !a.isArchived));
+      if (saved) {
+        const savedArtists = JSON.parse(saved);
+        setDisplayArtists(initialArtists.map(official => {
+          const modified = savedArtists.find((a: any) => String(a.id) === String(official.id));
+          return modified ? { ...official, ...modified } : official;
+        }));
+      }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -88,15 +75,12 @@ export function Landing() {
 
   const toggleAudio = (id: number, audioUrl: string) => {
     const urlToPlay = audioUrl || "/audio/mustapha.mp3";
-    if (playingId === id) { 
-      currentAudio?.pause(); 
-      setPlayingId(null); 
-    } else {
+    if (playingId === id) { currentAudio?.pause(); setPlayingId(null); }
+    else {
       if (currentAudio) currentAudio.pause();
       const newAudio = new Audio(urlToPlay);
       newAudio.play().catch(() => toast.error("العينة غير متوفرة حالياً"));
-      setCurrentAudio(newAudio); 
-      setPlayingId(id);
+      setCurrentAudio(newAudio); setPlayingId(id);
       newAudio.onended = () => setPlayingId(null);
     }
   };
@@ -105,9 +89,11 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
+      {/* 🟢 فرض خط كايرو على كل العناصر في الواجهة */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
-        body { font-family: 'Cairo', sans-serif !important; scroll-behavior: smooth; }
+        *, body, div, p, h1, h2, h3, span, button, input, textarea { font-family: 'Cairo', sans-serif !important; }
+        html { scroll-behavior: smooth; }
         .text-vox-primary { color: ${themeColor} !important; }
         .bg-vox-primary { background-color: ${themeColor} !important; }
         .border-vox-primary { border-color: ${themeColor} !important; }
@@ -130,9 +116,34 @@ export function Landing() {
               </Button>
             )}
             <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-              <button onClick={() => { setUserRole('admin'); navigate('/dashboard'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
-              <button onClick={() => { setUserRole('artist'); navigate('/dashboard/artists/1'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
-              <button onClick={() => setUserRole('visitor')} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}>زائر</button>
+              {/* 🟢 تسجيل الصلاحيات في الذاكرة قبل الانتقال */}
+              <button onClick={() => { 
+                  localStorage.setItem('voxdub_user_role', 'admin'); 
+                  setUserRole('admin'); 
+                  navigate('/dashboard/artists'); 
+                }} 
+                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}
+              >
+                واجهة لميس
+              </button>
+              <button onClick={() => { 
+                  localStorage.setItem('voxdub_user_role', 'artist'); 
+                  localStorage.setItem('voxdub_logged_in_id', '1'); 
+                  setUserRole('artist'); 
+                  navigate('/dashboard/artists/1'); 
+                }} 
+                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}
+              >
+                واجهة المعلق
+              </button>
+              <button onClick={() => { 
+                  localStorage.setItem('voxdub_user_role', 'visitor'); 
+                  setUserRole('visitor'); 
+                }} 
+                className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}
+              >
+                زائر
+              </button>
             </div>
           </div>
         </div>
@@ -162,16 +173,8 @@ export function Landing() {
                       <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{backgroundColor: themeColor + '33'}}>
                         <IconComponent size={52} style={{color: themeColor}} />
                       </div>
-                      <input
-                        value={item.t}
-                        onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }}
-                        className="editable-input text-2xl font-black"
-                      />
-                      <textarea
-                        value={item.d}
-                        onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }}
-                        className="editable-input text-stone-400 font-bold h-24 resize-none text-lg"
-                      />
+                      <input value={item.t} onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }} className="editable-input text-2xl font-black" />
+                      <textarea value={item.d} onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }} className="editable-input text-stone-400 font-bold h-24 resize-none text-lg" />
                     </div>
                   ) : (
                     <>
@@ -213,13 +216,8 @@ export function Landing() {
                 <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner cursor-pointer" onClick={() => navigate(`/dashboard/artists/${artist.id}`)}>
                   <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200">
                     <img 
-                      src={artist.image || '/images/default.jpg'} 
-                      className="w-full h-full object-cover" 
-                      alt={artist.name} 
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'; 
-                        e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl font-black text-stone-400 bg-white">${artist.name?.charAt(0)}</div>`;
-                      }} 
+                      src={artist.image || '/images/default.jpg'} className="w-full h-full object-cover" alt={artist.name} 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl font-black text-stone-400 bg-white">${artist.name?.charAt(0)}</div>`; }} 
                     />
                   </div>
                   <div className="text-right text-white/90 text-sm font-bold space-y-1">
@@ -229,10 +227,7 @@ export function Landing() {
                 </div>
 
                 <div className="space-y-4 relative z-10">
-                  <button 
-                    onClick={() => toggleAudio(artist.id, artist.audio || artist.defaultAudio)} 
-                    className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}
-                  >
+                  <button onClick={() => toggleAudio(artist.id, artist.audio || artist.defaultAudio)} className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}>
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
