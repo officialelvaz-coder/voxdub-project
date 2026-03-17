@@ -2,82 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Mic2, Play, Pause, Award, Star, Mic, 
-  CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck, X
+  CheckCircle2, Save, Search, MessageSquare, Headphones, FileCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// استيراد المكونات
 import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
-import { useAuth } from '../context/AuthContext';
-
-const audioMap: Record<number, string> = {
-  1: "/audio/mustapha.mp3",
-  2: "/audio/lamis.mp3",
-  3: "/audio/islam.mp3",
-  4: "/audio/ahmed.mp3",
-  5: "/audio/manel.mp3",
-  6: "/audio/adem.mp3",
-};
 
 const initialArtists = [
-  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", isNew: false, audio: "" },
-  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg", isNew: false, audio: "" },
-  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg", isNew: false, audio: "" },
-  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg", isNew: false, audio: "" },
-  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", rating: 4.9, experience: "5 سنوات", language: "عربي فصحى", image: "/images/manal.jpg", isNew: false, audio: "" },
-  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", isNew: false, audio: "" }
+  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن (الحكواتي)", rating: 5.0, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg", audio: "/audio/mustapha.mp3" },
+  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", rating: 5.0, experience: "7 سنوات", language: "عربي وفرنسي", image: "/images/lamis.jpg", audio: "/audio/mustapha.mp3" },
+  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", rating: 4.9, experience: "8 سنوات", language: "عربي فصحى", image: "/images/islam.jpg", audio: "/audio/mustapha.mp3" },
+  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", rating: 4.8, experience: "6 سنوات", language: "فصحى وعامية", image: "/images/ahmed.jpg", audio: "/audio/mustapha.mp3" },
+  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", rating: 4.9, experience: "5 سنوات", language: "عربي فصحى", image: "/images/manal.jpg", audio: "/audio/mustapha.mp3" },
+  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", rating: 5.0, experience: "10 سنوات", language: "عربي فصحى وعامية", image: "/images/adam.jpg", audio: "/audio/mustapha.mp3" }
 ];
-
-const getNewArtists = () => {
-  const saved = localStorage.getItem('voxdub_artists_v2');
-  if (!saved) return [];
-  return JSON.parse(saved).map((a: any) => ({
-    id: a.id,
-    name: a.name,
-    role: a.role || 'معلق صوتي',
-    rating: a.rating || 5.0,
-    experience: a.experience || 'غير محدد',
-    language: a.language || 'عربية فصحى',
-    image: a.image || '',
-    audio: a.audio || `/audio/${a.slug}.mp3`,
-    isNew: true,
-  }));
-};
 
 export function Landing() {
   const navigate = useNavigate();
-  const { userRole, setUserRole, login } = useAuth();
-
-  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#4c1d95');
-  const [liveLang] = useState(() => localStorage.getItem('voxdub_artist_lang') || 'عربية فصحى');
+  const [userRole, setUserRole] = useState<'admin' | 'artist' | 'visitor'>(() => (localStorage.getItem('voxdub_user_role') as any) || 'admin');
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem('voxdub_theme') || '#e11d48');
+  
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-  const [allArtists, setAllArtists] = useState(() => [...initialArtists, ...getNewArtists()]);
 
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginUser, setLoginUser] = useState('');
-  const [loginPass, setLoginPass] = useState('');
-  const [loginError, setLoginError] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('voxdub_theme', themeColor);
-  }, [themeColor]);
-
-  useEffect(() => {
-    setAllArtists([...initialArtists, ...getNewArtists()]);
-  }, []);
-
-  const handleAdminLogin = () => {
-    const success = login(loginUser, loginPass);
-    if (success) {
-      setShowLoginModal(false);
-      setLoginUser('');
-      setLoginPass('');
-      setLoginError('');
-      navigate('/dashboard');
-    } else {
-      setLoginError('اسم المستخدم أو كلمة السر غير صحيحة');
+  // 🟢 السر هنا: جلب المعلقين من الذاكرة (الملفات الشخصية) وليس من القائمة الثابتة
+  const [displayArtists, setDisplayArtists] = useState(() => {
+    const saved = localStorage.getItem('voxdub_artists_v2');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // عرض المعلقين غير المؤرشفين فقط
+      return parsed.filter((a: any) => !a.isArchived);
     }
-  };
+    return initialArtists;
+  });
 
   const [aboutData, setAboutData] = useState(() => {
     const saved = localStorage.getItem('voxdub_about_content');
@@ -97,75 +56,55 @@ export function Landing() {
     ];
   });
 
+  useEffect(() => {
+    // 🟢 تحديث الواجهة فوراً إذا تم تعديل أي ملف شخصي
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('voxdub_artists_v2');
+      if (saved) {
+        setDisplayArtists(JSON.parse(saved).filter((a: any) => !a.isArchived));
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const saveAllChanges = () => {
     localStorage.setItem('voxdub_about_content', JSON.stringify(aboutData));
     localStorage.setItem('voxdub_pricing_plans', JSON.stringify(pricingData));
     toast.success("تم حفظ تعديلات الواجهة!");
   };
 
-  const toggleAudio = (artist: any) => {
-    const id = artist.id;
-    const audioUrl = artist.isNew
-      ? (artist.audio || "/audio/mustapha.mp3")
-      : (audioMap[id] || "/audio/mustapha.mp3");
-
-    if (playingId === id) {
-      currentAudio?.pause();
-      setPlayingId(null);
+  const toggleAudio = (id: number, audioUrl: string) => {
+    const urlToPlay = audioUrl || "/audio/mustapha.mp3";
+    if (playingId === id) { 
+      currentAudio?.pause(); 
+      setPlayingId(null); 
     } else {
       if (currentAudio) currentAudio.pause();
-      const newAudio = new Audio(audioUrl);
-      newAudio.play().catch(() => toast.error("العينة غير متوفرة"));
-      setCurrentAudio(newAudio);
+      const newAudio = new Audio(urlToPlay);
+      newAudio.play().catch(() => toast.error("العينة غير متوفرة حالياً"));
+      setCurrentAudio(newAudio); 
       setPlayingId(id);
       newAudio.onended = () => setPlayingId(null);
     }
   };
 
-  const iconMap: any = { Mic, Headphones, FileCheck };
+  const iconMap: any = { Mic: Mic, Headphones: Headphones, FileCheck: FileCheck };
 
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
       <style>{`
-        *, *::before, *::after, body, input, textarea, button, select {
-          font-family: 'Cairo', sans-serif !important;
-        }
-        html { scroll-behavior: smooth; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        body { font-family: 'Cairo', sans-serif !important; scroll-behavior: smooth; }
         .text-vox-primary { color: ${themeColor} !important; }
         .bg-vox-primary { background-color: ${themeColor} !important; }
         .border-vox-primary { border-color: ${themeColor} !important; }
         .highlight-full { background-color: ${themeColor}; color: white; padding: 8px 25px; border-radius: 12px; display: inline-block; transform: rotate(-1deg); }
-        .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; font-family: 'Cairo', sans-serif !important; }
-        .pricing-input { border: 1px dashed ${themeColor}44; color: black; font-family: 'Cairo', sans-serif !important; }
-        .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; border-radius: 2rem; padding: 2.5rem; width: 90%; max-width: 400px; text-align: center; direction: rtl; }
-        .login-input { width: 100%; border: 2px solid #e5e7eb; border-radius: 1rem; padding: 12px 16px; font-size: 16px; margin-bottom: 12px; text-align: right; font-family: 'Cairo', sans-serif !important; outline: none; box-sizing: border-box; }
-        .login-input:focus { border-color: ${themeColor}; }
-        .login-btn { width: 100%; background: ${themeColor}; color: white; border: none; border-radius: 1rem; padding: 14px; font-size: 18px; font-weight: 900; cursor: pointer; font-family: 'Cairo', sans-serif !important; }
-        .login-btn:hover { opacity: 0.9; }
-        .login-error { color: #dc2626; font-size: 14px; margin-bottom: 10px; font-weight: 700; }
+        .editable-input { background: transparent; border: 1px dashed white; color: white; padding: 4px; border-radius: 8px; width: 100%; text-align: center; }
+        .pricing-input { border: 1px dashed ${themeColor}44; color: black; }
       `}</style>
 
-      {showLoginModal && (
-        <div className="login-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowLoginModal(false); setLoginError(''); } }}>
-          <div className="login-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button onClick={() => { setShowLoginModal(false); setLoginError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={22} color="#9ca3af" />
-              </button>
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>Vox<span style={{ color: themeColor }}>Dub</span></div>
-                <p style={{ color: '#6b7280', fontSize: '14px', fontWeight: 700, margin: '4px 0 0' }}>دخول لوحة الإدارة</p>
-              </div>
-            </div>
-            <input className="login-input" type="text" placeholder="اسم المستخدم" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
-            <input className="login-input" type="password" placeholder="كلمة السر" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()} />
-            {loginError && <p className="login-error">{loginError}</p>}
-            <button className="login-btn" onClick={handleAdminLogin}>دخول</button>
-          </div>
-        </div>
-      )}
-
+      {/* Nav */}
       <nav className="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-stone-100 h-24 flex items-center shadow-sm">
         <div className="max-w-7xl mx-auto px-4 w-full flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -179,14 +118,15 @@ export function Landing() {
               </Button>
             )}
             <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-              <button onClick={() => { if (userRole === 'admin') { navigate('/dashboard'); } else { setShowLoginModal(true); } }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
-              <button onClick={() => { setUserRole('artist'); navigate('/login'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
+              <button onClick={() => { setUserRole('admin'); navigate('/dashboard'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
+              <button onClick={() => { setUserRole('artist'); navigate('/dashboard/artists/1'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
               <button onClick={() => setUserRole('visitor')} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}>زائر</button>
             </div>
           </div>
         </div>
       </nav>
 
+      {/* Hero */}
       <section className="pt-32 pb-40 px-4 text-center">
         <h1 className="text-7xl md:text-7xl font-black text-stone-900 mb-10 leading-tight">اجعل لمشروعك <span className="highlight-full">صوتاً</span> لا يُنسى</h1>
         <p className="text-2xl md:text-3xl text-stone-500 max-w-3xl mx-auto mb-20 font-bold leading-relaxed italic">نخبة من المعلقين الصوتيين المحترفين بجودة استوديو عالمية.</p>
@@ -196,6 +136,7 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Why VoxDub */}
       <section id="about" className="py-32 bg-stone-900 text-white rounded-[4rem] mx-4 overflow-hidden text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-16 italic text-white">لماذا VoxDub؟</h2>
@@ -206,16 +147,24 @@ export function Landing() {
                 <div key={i} className="bg-white/5 p-10 rounded-[3rem] border border-white/10 text-center">
                   {userRole === 'admin' ? (
                     <div className="space-y-4">
-                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: themeColor + '33' }}>
-                        <IconComponent size={52} style={{ color: themeColor }} />
+                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6" style={{backgroundColor: themeColor + '33'}}>
+                        <IconComponent size={52} style={{color: themeColor}} />
                       </div>
-                      <input value={item.t} onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }} className="editable-input text-2xl font-black" />
-                      <textarea value={item.d} onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }} className="editable-input text-stone-400 font-bold h-24 resize-none text-lg" />
+                      <input
+                        value={item.t}
+                        onChange={(e) => { const nd = [...aboutData]; nd[i].t = e.target.value; setAboutData(nd); }}
+                        className="editable-input text-2xl font-black"
+                      />
+                      <textarea
+                        value={item.d}
+                        onChange={(e) => { const nd = [...aboutData]; nd[i].d = e.target.value; setAboutData(nd); }}
+                        className="editable-input text-stone-400 font-bold h-24 resize-none text-lg"
+                      />
                     </div>
                   ) : (
                     <>
-                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8" style={{ backgroundColor: themeColor + '33' }}>
-                        <IconComponent size={52} style={{ color: themeColor }} />
+                      <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8" style={{backgroundColor: themeColor + '33'}}>
+                        <IconComponent size={52} style={{color: themeColor}} />
                       </div>
                       <h3 className="text-3xl font-black mb-4 text-white">{item.t}</h3>
                       <p className="text-stone-300 font-bold leading-relaxed text-xl">{item.d}</p>
@@ -228,12 +177,14 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Artists Section */}
       <section id="artists" className="py-32 bg-stone-50 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black text-stone-900 mb-4">معلقونا الصوتيون</h2>
-          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المعلقين المحترفين</p>
+          <p className="text-xl text-stone-500 font-bold mb-24">اختر الصوت المثالي لمشروعك من بين نخبة من المبدعين</p>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-right">
-            {allArtists.map((artist) => (
+            {displayArtists.map((artist: any) => (
               <div key={artist.id} className="bg-vox-primary rounded-[4rem] p-10 shadow-2xl relative overflow-hidden group transition-all hover:-translate-y-4 text-white">
                 <div className="flex justify-between items-start mb-8 relative z-10">
                   <Award size={32} className="opacity-50" />
@@ -241,34 +192,41 @@ export function Landing() {
                     <h3 className="text-3xl font-black leading-none">{artist.name}</h3>
                     <p className="font-bold opacity-80 mt-2">{artist.role}</p>
                     <div className="flex items-center justify-end gap-1 mt-3">
-                      <span className="text-xl font-black">{artist.rating}</span>
-                      <Star size={18} className="fill-white text-white" />
+                       <span className="text-xl font-black">{artist.rating || "5.0"}</span>
+                       <Star size={18} className="fill-white text-white" />
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner">
+
+                <div className="flex items-center gap-8 mb-10 bg-white/10 p-6 rounded-[3rem] border border-white/20 backdrop-blur-2xl relative z-10 shadow-inner cursor-pointer" onClick={() => navigate(`/dashboard/artists/${artist.id}`)}>
                   <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/50 shadow-xl bg-stone-200">
-                    <img src={artist.image} className="w-full h-full object-cover" alt="" />
+                    <img 
+                      src={artist.image || '/images/default.jpg'} 
+                      className="w-full h-full object-cover" 
+                      alt={artist.name} 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'; 
+                        e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl font-black text-stone-400 bg-white">${artist.name?.charAt(0)}</div>`;
+                      }} 
+                    />
                   </div>
                   <div className="text-right text-white/90 text-sm font-bold space-y-1">
                     <p>الخبرة: <span className="text-white">{artist.experience}</span></p>
-                    <p>اللغة: <span className="text-white">{artist.id === 1 ? liveLang : artist.language}</span></p>
+                    <p>اللغة: <span className="text-white">{artist.language}</span></p>
                   </div>
                 </div>
+
                 <div className="space-y-4 relative z-10">
-                  <button
-                    onClick={() => toggleAudio(artist)}
+                  <button 
+                    onClick={() => toggleAudio(artist.id, artist.audio || artist.defaultAudio)} 
                     className={`w-full py-5 rounded-[2.5rem] font-black text-2xl transition-all flex justify-center items-center gap-4 ${playingId === artist.id ? "bg-stone-900 text-white" : "bg-white text-vox-primary hover:bg-stone-100"}`}
                   >
                     {playingId === artist.id ? <Pause size={28} /> : <Play fill="currentColor" size={28} />}
                     {playingId === artist.id ? "إيقاف" : "استمع"}
                   </button>
-                  <a
-                    href={artist.isNew ? '#' : `/dashboard/artists/${artist.id}`}
-                    className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all"
-                  >
+                  <button onClick={() => navigate(`/dashboard/artists/${artist.id}`)} className="w-full py-4 rounded-[1.5rem] font-bold text-white border border-white/30 text-center block bg-white/10 hover:bg-white hover:text-vox-primary transition-all">
                     الملف الشخصي
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
@@ -276,6 +234,7 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Workflow */}
       <section id="workflow" className="py-32 bg-white text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-24 italic text-stone-900">كيف <span className="text-vox-primary">نعمل؟</span></h2>
@@ -298,6 +257,7 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Pricing */}
       <section id="pricing" className="py-32 bg-stone-50 text-center text-stone-900">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا الإبداعية</h2>
@@ -305,6 +265,7 @@ export function Landing() {
             {pricingData.map((plan: any, i: number) => (
               <div key={i} className={`p-10 rounded-[4rem] border-4 transition-all ${plan.popular ? 'border-vox-primary bg-white scale-105 shadow-2xl relative' : 'border-stone-100 bg-white/50'}`}>
                 {plan.popular && <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-8 py-2 rounded-full font-black">الأكثر طلباً</div>}
+                
                 {userRole === 'admin' ? (
                   <div className="space-y-3">
                     <input value={plan.t} onChange={(e) => { const nd = [...pricingData]; nd[i].t = e.target.value; setPricingData(nd); }} className="editable-input pricing-input text-2xl font-black text-stone-900" />
@@ -319,15 +280,10 @@ export function Landing() {
                   <>
                     <h3 className="text-2xl font-black mb-1">{plan.t}</h3>
                     <p className="text-stone-400 font-bold text-sm mb-6">{plan.d}</p>
-                    <div className="mb-8">
-                      <span className="text-5xl font-black text-vox-primary">{plan.p}</span>
-                      <span className="text-stone-400 font-black text-xs mr-2">{plan.u}</span>
-                    </div>
+                    <div className="mb-8"><span className="text-5xl font-black text-vox-primary">{plan.p}</span><span className="text-stone-400 font-black text-xs mr-2">{plan.u}</span></div>
                     <ul className="space-y-4 mb-10">
                       {plan.f.map((feature: string, j: number) => (
-                        <li key={j} className="flex items-center gap-3 font-bold text-stone-600 text-sm">
-                          <CheckCircle2 className="text-vox-primary flex-shrink-0" size={16} /> {feature}
-                        </li>
+                        <li key={j} className="flex items-center gap-3 font-bold text-stone-600 text-sm"><CheckCircle2 className="text-vox-primary flex-shrink-0" size={16} /> {feature}</li>
                       ))}
                     </ul>
                   </>
@@ -339,12 +295,13 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Order & Footer */}
       <section id="contact" className="py-32 bg-white">
         <div className="max-w-4xl mx-auto px-4 bg-white p-2 rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden">
           <OrderForm />
         </div>
       </section>
-
+      
       <footer className="bg-stone-900 text-white py-24 text-center rounded-t-[4rem]">
         <div className="text-4xl font-black mb-8 italic text-white">Vox<span className="text-vox-primary">Dub</span></div>
         <p className="text-stone-600 font-bold italic">إدارة وتأسيس: لميس حميمي © 2026 - جميع الحقوق محفوظة لـ VoxDub Studio</p>
