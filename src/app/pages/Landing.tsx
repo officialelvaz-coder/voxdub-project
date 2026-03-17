@@ -9,7 +9,14 @@ import { Button } from '../components/ui/button';
 import { OrderForm } from '../components/OrderForm';
 import { useAuth } from '../context/AuthContext';
 
-const AUDIO_URL = "/audio/mustapha.mp3";
+const audioMap: Record<number, string> = {
+  1: "/audio/mustapha.mp3",
+  2: "/audio/lamis.mp3",
+  3: "/audio/islam.mp3",
+  4: "/audio/ahmed.mp3",
+  5: "/audio/manel.mp3",
+  6: "/audio/adem.mp3",
+  };
 
 const initialArtists = [
   { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن", rating: 4.9, experience: "12 سنة", language: "فصحى وإنجليزي", image: "/images/mustapha.jpg" },
