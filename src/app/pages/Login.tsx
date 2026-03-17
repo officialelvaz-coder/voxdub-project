@@ -1,51 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { Mic2, LogIn, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase'; // تأكد من مسار ملف السوبابيز أو قاعدة بياناتك
+import { Mic2, LogIn } from 'lucide-react';
+
+// القائمة الثابتة الأساسية (نفس التي في ملف Artists)
+const officialArtists = [
+  { id: "1", name: "مصطفى جغلال" },
+  { id: "2", name: "لميس حميمي" },
+  { id: "3", name: "بلهادي محمد إسلام" },
+  { id: "4", name: "أحمد حاج إسماعيل" },
+  { id: "5", name: "منال إبراهيمي" },
+  { id: "6", name: "آدم حمدوني" }
+];
 
 export function Login() {
   const [password, setPassword] = useState('');
   const [selectedArtist, setSelectedArtist] = useState('');
   const [artistsList, setArtistsList] = useState<{id: string, name: string}[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  
   const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
 
-  // 1. تنظيف الجلسة القديمة عند فتح الصفحة
   useEffect(() => {
+    // 1. تنظيف الجلسة القديمة
     localStorage.removeItem('voxdub_user_role');
     localStorage.removeItem('voxdub_logged_artist_id');
     
-    // 2. جلب المعلقين تلقائياً من قاعدة البيانات
-    const fetchArtists = async () => {
-      try {
-        setIsLoading(true);
-        // ملاحظة: استبدل 'artists' باسم الجدول الحقيقي لديك
-        const { data, error: dbError } = await supabase
-          .from('artists') 
-          .select('id, name')
-          .order('name', { ascending: true });
-
-        if (dbError) throw dbError;
-        setArtistsList(data || []);
-      } catch (err: any) {
-        console.error("Error fetching artists:", err);
-        setError("فشل تحميل قائمة المعلقين");
-      } finally {
-        setIsLoading(false);
+    // 2. جلب المعلقين من localStorage (المضافين يدوياً) ودمجهم مع القائمة الأساسية
+    const saved = localStorage.getItem('voxdub_artists_v2');
+    const savedArtists = saved ? JSON.parse(saved) : [];
+    
+    // دمج القوائم مع تجنب التكرار
+    const combined = [...savedArtists];
+    officialArtists.forEach(off => {
+      if (!combined.find(a => String(a.id) === String(off.id))) {
+        combined.push(off);
       }
-    };
+    });
 
-    fetchArtists();
+    // 3. عرض أول 4 معلقين فقط كما طلبت
+    setArtistsList(combined.slice(0, 4));
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
     // تسجيل دخول المديرة
-    if (password === 'admin123') {
+    if (password === 'admin123' && selectedArtist === '') {
       localStorage.setItem('voxdub_user_role', 'admin');
-      window.location.href = '/dashboard';
+      window.location.href = '/dashboard/artists'; // أو المسار الذي تريده
       return;
     }
 
@@ -53,77 +53,70 @@ export function Login() {
     if (selectedArtist && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
       localStorage.setItem('voxdub_logged_artist_id', selectedArtist);
-      window.location.href = '/dashboard';
+      // التوجيه لبروفايل المعلق مباشرة أو لوحة التحكم
+      window.location.href = `/dashboard/artists/${selectedArtist}`;
       return;
     }
 
-    alert('كلمة المرور غير صحيحة');
+    alert('كلمة المرور غير صحيحة أو لم يتم اختيار الحساب بشكل صحيح');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 text-right" dir="rtl">
+      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-stone-100">
         <div className="flex flex-col items-center mb-8">
           <div 
-            className="p-4 rounded-full mb-4"
-            style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+            className="p-5 rounded-[1.5rem] mb-4"
+            style={{ backgroundColor: `${themeColor}15`, color: themeColor }}
           >
             <Mic2 size={40} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Voxdub Portal</h1>
-          <p className="text-gray-500">منصة إدارة التعليق الصوتي</p>
+          <h1 className="text-3xl font-black text-stone-900 italic">Voxdub <span style={{ color: themeColor }}>Portal</span></h1>
+          <p className="text-stone-400 font-bold mt-2">مرحباً بك في منصة التعليق الصوتي</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              اختر الحساب
+            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">
+              اختر الحساب المسؤول
             </label>
             <select
               value={selectedArtist}
               onChange={(e) => setSelectedArtist(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 outline-none transition-all"
+              className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none transition-all font-bold text-stone-600 bg-stone-50"
               style={{ '--tw-ring-color': themeColor } as any}
-              disabled={isLoading}
             >
               <option value="">مديرة الموقع (Admin)</option>
-              {isLoading ? (
-                <option>جاري التحميل...</option>
-              ) : (
-                artistsList.map((artist) => (
-                  <option key={artist.id} value={artist.id}>
-                    {artist.name} (معلق صوتي)
-                  </option>
-                ))
-              )}
+              {artistsList.map((artist) => (
+                <option key={artist.id} value={artist.id}>
+                  {artist.name} (معلق صوتي)
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">
               كلمة المرور
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 outline-none transition-all"
+              className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none transition-all font-bold text-left bg-stone-50"
               style={{ '--tw-ring-color': themeColor } as any}
               placeholder="••••••••"
               required
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
           <button
             type="submit"
-            className="w-full text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:bg-gray-400"
+            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg"
             style={{ backgroundColor: themeColor }}
-            disabled={isLoading}
           >
-            {isLoading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}
-            تسجيل الدخول
+            <LogIn size={20} />
+            دخول للمنصة
           </button>
         </form>
       </div>
