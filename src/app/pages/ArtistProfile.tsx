@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { 
   Save, Home, Play, Pause, Music, Star, User, Clock, 
-  Trash2, Plus, Edit3, MessageSquare, Quote
+  Trash2, Plus, Quote, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +33,7 @@ export function ArtistProfile() {
     const saved = localStorage.getItem('voxdub_artists_v2');
     const artists = saved ? JSON.parse(saved) : [];
     const found = artists.find((a: any) => String(a.id) === String(id));
-    return found || { name: 'معلق', role: 'وصف الصوت', bio: 'النبذة', gender: 'ذكر', experience: '0 سنة', image: '/images/default.jpg' };
+    return found || { name: 'معلق', role: 'وصف الصوت', bio: 'النبذة', gender: 'ذكــــــر', experience: '0 سنة', image: '/images/default.jpg' };
   });
 
   // 2. حالة العينات الصوتية
@@ -69,8 +69,22 @@ export function ArtistProfile() {
     }
   };
 
+  // 📸 دالة التعامل مع تغيير الصورة
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        // تحديث حالة البروفايل بالصورة الجديدة (Base64)
+        setProfile({ ...profile, image: event.target?.result as string });
+        toast.success("تم رفع الصورة الجديدة بنجاح! لا تنسَ الحفظ.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = () => {
-    // حفظ البروفايل
+    // حفظ البروفايل (بما في ذلك الصورة الجديدة)
     const saved = localStorage.getItem('voxdub_artists_v2');
     let artists = saved ? JSON.parse(saved) : [];
     const idx = artists.findIndex((a: any) => String(a.id) === String(id));
@@ -97,8 +111,22 @@ export function ArtistProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6">
           <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-stone-100 text-center">
-            <div className="w-40 h-40 mx-auto rounded-[2.5rem] overflow-hidden mb-6 border-4 border-stone-50 shadow-inner">
+            {/* 📸 جزء تغيير الصورة للمالك فقط */}
+            <div className="relative w-40 h-40 mx-auto rounded-[2.5rem] mb-6 group overflow-hidden border-4 border-stone-50 shadow-inner bg-stone-100">
                <img src={profile.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" />
+               
+               {isOwner && (
+                 <>
+                   <input type="file" id="artist-image" hidden accept="image/*" onChange={handleImageChange} />
+                   <div 
+                    onClick={() => document.getElementById('artist-image')?.click()}
+                    className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem]"
+                   >
+                     <Camera size={32} className="mb-2" />
+                     <span className="text-[10px] font-black">تغيير الصورة</span>
+                   </div>
+                 </>
+               )}
             </div>
             
             {/* تعديل الاسم والوصف للمالك */}
