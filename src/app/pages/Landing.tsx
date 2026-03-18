@@ -1,3 +1,48 @@
+// 1. أضف هذه الاستيرادات في الأعلى
+import React, { useState } from 'react';
+import { Palette } from 'lucide-react';
+
+// 2. داخل مكون الصفحة الرئيسية (الـ Component)
+export function LandingPage() {
+  const navigate = useNavigate();
+  
+  // التحقق من هوية المستخدم واللون الحالي
+  const userRole = localStorage.getItem('voxdub_user_role');
+  const [themeColor, setThemeColor] = useState(localStorage.getItem('voxdub_theme') || '#e11d48');
+
+  // دالة تحديث اللون
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setThemeColor(newColor);
+    localStorage.setItem('voxdub_theme', newColor);
+    // إرسال حدث لتنبيه باقي الصفحات المفتوحة بتغيير اللون
+    window.dispatchEvent(new Event('storage'));
+    // اختياري: إعادة تحميل الصفحة لتطبيق اللون على كل العناصر فوراً
+    // window.location.reload(); 
+  };
+
+  return (
+    <div className="relative">
+      {/* 🎨 هذا الجزء يظهر فقط لـ "لميس" (الأدمن) في الزاوية */}
+      {userRole === 'admin' && (
+        <div className="fixed top-24 left-6 z-[999] bg-white/80 backdrop-blur-md p-4 rounded-[2rem] shadow-2xl border border-stone-100 flex flex-col items-center gap-2 group transition-all hover:scale-105">
+          <div className="bg-stone-100 p-2 rounded-xl text-stone-500">
+            <Palette size={20} />
+          </div>
+          <span className="text-[10px] font-black text-stone-400">هوية الموقع</span>
+          <input 
+            type="color" 
+            value={themeColor} 
+            onChange={handleColorChange}
+            className="w-10 h-10 rounded-full cursor-pointer border-2 border-white shadow-inner bg-transparent"
+          />
+        </div>
+      )}
+
+      {/* بقية محتوى الواجهة الرئيسية هنا... */}
+    </div>
+  );
+}
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
