@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -11,5 +11,6 @@ const firebaseConfig = {
   measurementId: "G-R2EBWHN9S2"
 };
 
-const app = initializeApp(firebaseConfig);
+// هذا السطر يمنع الخطأ المتكرر في Vercel
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
