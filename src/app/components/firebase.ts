@@ -1,5 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDyOoLEsDzhQdcqfDgntBejE-xTnLULbTg",
@@ -11,8 +11,8 @@ const firebaseConfig = {
   measurementId: "G-R2EBWHN9S2"
 };
 
-// تهيئة Firebase
+// تهيئة التطبيق
 const app = initializeApp(firebaseConfig);
 
-// تصدير قاعدة البيانات لاستخدامها في الملفات الأخرى
+// تصدير قاعدة البيانات
 export const db = getFirestore(app);
