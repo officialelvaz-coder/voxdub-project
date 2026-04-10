@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { db, app } from './firebase'; 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Check } from 'lucide-react';
 
 export function OrderForm() {
   const [firstName, setFirstName] = useState('');
@@ -93,9 +92,6 @@ export function OrderForm() {
   if (isSubmitted) {
     return (
       <div className="max-w-2xl mx-auto p-12 bg-green-50 border-2 border-green-200 text-green-800 rounded-[32px] text-center shadow-xl">
-        <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Check className="text-white w-10 h-10" />
-        </div>
         <h2 className="text-3xl font-bold mb-4">تم استلام طلبك بنجاح!</h2>
         <p className="text-lg">شكراً لثقتك بـ VoxDub. سيقوم فريقنا بمراجعة طلبك والتواصل معك قريباً.</p>
         <button onClick={() => setIsSubmitted(false)} className="mt-8 text-green-700 font-bold underline">إرسال طلب آخر</button>
@@ -112,7 +108,6 @@ export function OrderForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          {/* مرحلة اختيار الباقة */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
               <div 
@@ -126,7 +121,6 @@ export function OrderForm() {
               >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-bold text-lg text-stone-800">{pkg.name}</h3>
-                  {selectedPackage === pkg.name && <Check className={pkg.isGold ? 'text-[#D4AF37]' : 'text-red-600'} />}
                 </div>
                 <p className="text-2xl font-black mb-2">{pkg.price} <span className="text-sm font-normal text-stone-500">د.ج</span></p>
                 <p className="text-xs text-stone-500 mb-4">{pkg.description}</p>
@@ -141,10 +135,8 @@ export function OrderForm() {
             ))}
           </div>
 
-          {/* مرحلة البيانات الشخصية */}
           <div className="bg-white p-8 md:p-12 rounded-[32px] shadow-xl border border-stone-100">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* العمود الأول */}
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -176,7 +168,6 @@ export function OrderForm() {
                 </div>
               </div>
 
-              {/* العمود الثاني */}
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold text-stone-700 mb-2">اختر المعلق الصوتي *</label>
