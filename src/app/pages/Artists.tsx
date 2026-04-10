@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../components/firebase'; // المسار الصحيح لملف firebase.ts
+import { db } from '../components/firebase';
 
 interface Artist {
   id: string;
@@ -11,7 +11,6 @@ interface Artist {
   voiceType: string;
   profilePicture?: string;
   audioSamples?: string[];
-  // أضف أي حقول أخرى للمعلق هنا
 }
 
 const Artists: React.FC = () => {
@@ -75,7 +74,7 @@ const Artists: React.FC = () => {
 
         <div className="flex flex-col md:flex-row justify-center gap-4 mb-8">
           <div className="flex items-center gap-2">
-            <label htmlFor="gender-filter" className="text-gray-700">الجنس:</label>
+            <label htmlFor="gender-filter" className="text-gray-700 font-semibold">الجنس:</label>
             <select
               id="gender-filter"
               className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
@@ -89,7 +88,7 @@ const Artists: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <label htmlFor="voice-type-filter" className="text-gray-700">نوع الصوت:</label>
+            <label htmlFor="voice-type-filter" className="text-gray-700 font-semibold">نوع الصوت:</label>
             <select
               id="voice-type-filter"
               className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
@@ -100,38 +99,46 @@ const Artists: React.FC = () => {
               <option value="young">شاب/شابة</option>
               <option value="adult">بالغ/بالغة</option>
               <option value="child">طفل/طفلة</option>
-              {/* أضف أنواع أصوات أخرى حسب الحاجة */}
             </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredArtists.length > 0 ? (
-            filteredArtists.map((artist) => (
-              <div key={artist.id} className="bg-white rounded-lg shadow-md p-6 text-center">
+        {filteredArtists.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredArtists.map((artist) => (
+              <div key={artist.id} className="bg-gradient-to-br from-red-50 to-yellow-50 rounded-lg shadow-md p-6 text-center border border-red-200 hover:shadow-lg transition">
                 {artist.profilePicture && (
                   <img
                     src={artist.profilePicture}
                     alt={artist.name}
-                    className="w-32 h-32 object-cover rounded-full mx-auto mb-4"
+                    className="w-32 h-32 object-cover rounded-full mx-auto mb-4 border-4 border-red-800"
                   />
                 )}
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">{artist.name}</h3>
-                <p className="text-gray-600">الجنس: {artist.gender === 'male' ? 'ذكر' : 'أنثى'}</p>
-                <p className="text-gray-600">نوع الصوت: {artist.voiceType}</p>
-                <div className="mt-4">
-                  {artist.audioSamples && artist.audioSamples.map((sample, index) => (
-                    <audio key={index} controls src={sample} className="w-full mb-2">
-                      متصفحك لا يدعم العنصر الصوتي.
-                    </audio>
-                  ))}
-                </div>
+                <p className="text-gray-600 text-sm mb-1">
+                  <span className="font-bold">الجنس:</span> {artist.gender === 'male' ? 'ذكر' : 'أنثى'}
+                </p>
+                <p className="text-gray-600 text-sm mb-4">
+                  <span className="font-bold">نوع الصوت:</span> {
+                    artist.voiceType === 'young' ? 'شاب/شابة' :
+                    artist.voiceType === 'adult' ? 'بالغ/بالغة' :
+                    'طفل/طفلة'
+                  }
+                </p>
+                {artist.audioSamples && artist.audioSamples.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-gray-700 font-semibold text-sm">العينات الصوتية:</p>
+                    {artist.audioSamples.map((sample, index) => (
+                      <audio key={index} controls src={sample} className="w-full h-8" />
+                    ))}
+                  </div>
+                )}
               </div>
-            ))
-          ) : (
-            <p className="col-span-full text-center text-gray-600">لا يوجد معلقون مطابقون لمعايير البحث.</p>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-600 text-lg">لا يوجد معلقون مطابقون لمعايير البحث.</p>
+        )}
       </div>
     </div>
   );
