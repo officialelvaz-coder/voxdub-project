@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
 import { db } from '../firebase'; // تأكد من المسار الصحيح لملف firebase
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
 export function Login() {
   const [password, setPassword] = useState('');
@@ -11,11 +11,13 @@ export function Login() {
   const [artistsList, setArtistsList] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const themeColor = '#e11d48'; // اللون الأحمر الملكي لمشروعك
+  // جلب لون الهوية المختار ليبقى الموقع متناسقاً
+  const [themeColor] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48');
 
   useEffect(() => {
     const fetchArtists = async () => {
       try {
+        // جلب قائمة المعلقين حياً من Firebase Firestore
         const querySnapshot = await getDocs(collection(db, "artists"));
         const artists = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -46,7 +48,7 @@ export function Login() {
     if (selectedArtistId && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
       localStorage.setItem('voxdub_logged_artist_id', selectedArtistId);
-      // التوجيه إلى لوحة تحكم المعلق
+      // التوجيه إلى لوحة تحكم المعلق بناءً على الـ ID الحقيقي في Firestore
       window.location.href = `/dashboard/artists/${selectedArtistId}`;
       return;
     }
