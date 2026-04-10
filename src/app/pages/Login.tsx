@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
-import { db } from '../firebase'; // تأكد من المسار الصحيح لملف firebase
+import { db } from '../components/firebase'; // تم تصحيح المسار هنا
 import { collection, getDocs } from 'firebase/firestore';
 
 export function Login() {
@@ -11,13 +12,11 @@ export function Login() {
   const [artistsList, setArtistsList] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // جلب لون الهوية المختار ليبقى الموقع متناسقاً
   const [themeColor] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48');
 
   useEffect(() => {
     const fetchArtists = async () => {
       try {
-        // جلب قائمة المعلقين حياً من Firebase Firestore
         const querySnapshot = await getDocs(collection(db, "artists"));
         const artists = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -37,18 +36,15 @@ export function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // دخول المديرة (بدون اختيار اسم + كلمة سر admin123)
     if (!selectedArtistId && password === 'admin123') {
       localStorage.setItem('voxdub_user_role', 'admin');
       window.location.href = '/dashboard/artists';
       return;
     }
 
-    // دخول المعلق (اختيار اسم + كلمة سر artist123)
     if (selectedArtistId && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
       localStorage.setItem('voxdub_logged_artist_id', selectedArtistId);
-      // التوجيه إلى لوحة تحكم المعلق بناءً على الـ ID الحقيقي في Firestore
       window.location.href = `/dashboard/artists/${selectedArtistId}`;
       return;
     }
