@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'VoxDub - منصة المعلقين الصوتيين',
@@ -12,20 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl">
-      <head>
-        <style>{`
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f3f4f6;
-          }
-        `}</style>
-      </head>
-      <body>
+      <body className="bg-gray-50">
         {children}
       </body>
     </html>
