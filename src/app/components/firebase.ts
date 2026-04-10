@@ -1,16 +1,18 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDyOoLEsDzhQdcqfDgntBejE-xTnLULbTg",
-  authDomain: "voxdub-a541c.firebaseapp.com",
-  projectId: "voxdub-a541c",
-  storageBucket: "voxdub-a541c.firebasestorage.app",
-  messagingSenderId: "1040506253784",
-  appId: "1:1040506253784:web:42086b27296e0327ae42ad",
-  measurementId: "G-R2EBWHN9S2"
+  apiKey: 'AIzaSyDyOoLEsDzhQdcqfDgntBejE-xTnLULbTg',
+  authDomain: 'voxdub-a541c.firebaseapp.com',
+  projectId: 'voxdub-a541c',
+  storageBucket: 'voxdub-a541c.firebasestorage.app',
+  messagingSenderId: '1040506253784',
+  appId: '1:1040506253784:web:42086b27296e0327ae42ad',
 };
 
-// تهيئة التطبيق مع تصدير app لاستخدامه في رفع الملفات
-export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const auth = getAuth(app);
