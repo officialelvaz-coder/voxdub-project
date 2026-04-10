@@ -1,55 +1,44 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
-import { Label } from '../components/ui/label';
 import { 
   Search, UserPlus, Trash2, Play, Pause, Upload, 
-  CheckCircle2, Headset, Mic, X, CloudUpload, Home 
+  CheckCircle2, Mic, X, CloudUpload 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { db, app } from '../firebase'; // تأكد من المسار الصحيح لملف firebase
+import { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// القائمة الأساسية (Static)
-const officialArtists = [
-  { id: 1, name: "مصطفى جغلال", role: "صوت احترافي ومتزن (الحكواتي)", gender: "ذكر", experience: "12 سنة", image: "/images/mustapha.jpg", language: "فصحى وإنجليزي", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 2, name: "لميس حميمي", role: "صوت ناعم ومقنع", gender: "أنثى", experience: "7 سنوات", image: "/images/lamis.jpg", language: "عربي وفرنسي", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 3, name: "بلهادي محمد إسلام", role: "صوت عميق وقوي", gender: "ذكر", experience: "8 سنوات", image: "/images/islam.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 4, name: "أحمد حاج إسماعيل", role: "صوت حماسي وشبابي", gender: "ذكر", experience: "6 سنوات", image: "/images/ahmed.jpg", language: "فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 5, name: "منال إبراهيمي", role: "صوت درامي ومؤثر", gender: "أنثى", experience: "5 سنوات", image: "/images/manal.jpg", language: "عربي فصحى", audio: "/audio/mustapha.mp3", isArchived: false },
-  { id: 6, name: "آدم حمدوني", role: "صوت دافئ وجذاب", gender: "ذكر", experience: "10 سنوات", image: "/images/adam.jpg", language: "عربي فصحى وعامية", audio: "/audio/mustapha.mp3", isArchived: false }
-];
-
-const arabicToSlug = (name: string): string => {
-  const firstWord = name.trim().split(' ')[0];
-  const map: Record<string, string> = {
-    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j',
-    'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
-    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
-    'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a',
-    'ة': 'a', 'ء': 'a', 'ئ': 'y', 'ؤ': 'w',
-  };
-  return firstWord.split('').map(c => map[c] || '').join('').toLowerCase();
-};
-
-// --- مكون المودال (نفس الكود الخاص بك مع تحسينات بسيطة) ---
+// --- مكون المودال لرفع العينات الصوتية (نفس الكود الخاص بك) ---
 function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
-  const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!isOpen) { setPreviewFile(null); setIsLoading(false); } }, [isOpen]);
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     if (!file.type.startsWith('audio/')) { toast.error('يُقبل فقط ملفات صوتية'); return; }
     setIsLoading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewFile({ name: file.name, size: `${(file.size / 1024 / 1024).toFixed(2)} MB`, dataUrl: reader.result as string });
+    
+    try {
+      const storage = getStorage(app);
+      const storageRef = ref(storage, `temp_samples/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      setPreviewFile({ name: file.name, url: downloadURL });
+      toast.success('تم تجهيز الملف بنجاح');
+    } catch (error) {
+      toast.error('فشل معالجة الملف');
+    } finally {
       setIsLoading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   if (!isOpen) return null;
@@ -71,9 +60,9 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
             style={{ borderColor: previewFile ? '#22c55e' : '#333', background: previewFile ? '#0d2010' : '#1a1a1a' }}
           >
             <input ref={inputRef} type="file" accept="audio/*" hidden onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
-            {previewFile ? <div className="text-green-400 font-black"><CheckCircle2 className="mx-auto mb-2" />{previewFile.name}</div> : <div className="text-white/30"><CloudUpload className="mx-auto mb-2" />اسحب أو انقر للرفع</div>}
+            {isLoading ? <div className="text-white/30 animate-pulse">جاري المعالجة...</div> : previewFile ? <div className="text-green-400 font-black"><CheckCircle2 className="mx-auto mb-2" />{previewFile.name}</div> : <div className="text-white/30"><CloudUpload className="mx-auto mb-2" />اسحب أو انقر للرفع</div>}
           </div>
-          <Button onClick={() => { onUpload(previewFile.dataUrl, previewFile.name); onClose(); }} disabled={!previewFile} className="w-full h-14 rounded-2xl font-black text-white" style={{ background: themeColor }}>تأكيد العينة</Button>
+          <Button onClick={() => { onUpload(previewFile.url, previewFile.name); onClose(); }} disabled={!previewFile} className="w-full h-14 rounded-2xl font-black text-white" style={{ background: themeColor }}>تأكيد العينة</Button>
         </div>
       </div>
     </div>
@@ -82,56 +71,73 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
 
 export function Artists() {
   const navigate = useNavigate();
-  const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
+  const themeColor = (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48';
   
-  // ضبط الصلاحيات: المديرة فقط من تملك صلاحية الإضافة والحذف
-  const userRole = localStorage.getItem('voxdub_user_role');
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('voxdub_user_role') : null;
   const isAdmin = userRole === 'admin';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
-  const [newArtist, setNewArtist] = useState({ name: '', role: '', gender: '', experienceYears: '', language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '' });
+  const [newArtist, setNewArtist] = useState({ name: '', role: '', gender: 'ذكر', experienceYears: '', language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '' });
   
-  const [artists, setArtists] = useState(() => {
-    const saved = localStorage.getItem('voxdub_artists_v2');
-    const savedArtists = saved ? JSON.parse(saved) : [];
-    const combined = [...savedArtists];
-    officialArtists.forEach(off => { if (!combined.find(a => String(a.id) === String(off.id))) combined.push(off); });
-    return combined;
-  });
-
-  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  const handleAddArtist = () => {
+  // جلب البيانات حياً من Firebase Firestore
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "artists"), (snapshot) => {
+      const artistsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setArtists(artistsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleAddArtist = async () => {
     if (!newArtist.name.trim()) return toast.error('الاسم مطلوب');
-    const slug = arabicToSlug(newArtist.name);
-    const artistToAdd = {
-      ...newArtist,
-      id: Date.now(),
-      slug,
-      audio: newArtist.audio || null, // إذا لم يرفع عينة نضعها null
-      image: newArtist.image || null,
-      experience: `${newArtist.experienceYears || 0} سنوات`,
-      isArchived: false
-    };
-    const updated = [artistToAdd, ...artists];
-    setArtists(updated);
-    localStorage.setItem('voxdub_artists_v2', JSON.stringify(updated));
-    setIsAddDialogOpen(false);
-    toast.success(`تمت إضافة ${newArtist.name}`);
+    
+    try {
+      const artistToAdd = {
+        name: newArtist.name,
+        role: newArtist.role,
+        gender: newArtist.gender,
+        experience: `${newArtist.experienceYears || 0} سنوات`,
+        language: newArtist.language,
+        bio: newArtist.bio,
+        imageUrl: newArtist.image || null,
+        samples: newArtist.audio ? [{ id: Date.now().toString(), title: newArtist.audioName || "عينة أساسية", audio: newArtist.audio }] : [],
+        createdAt: new Date()
+      };
+
+      await addDoc(collection(db, "artists"), artistToAdd);
+      setIsAddDialogOpen(false);
+      setNewArtist({ name: '', role: '', gender: 'ذكر', experienceYears: '', language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '' });
+      toast.success(`تمت إضافة ${newArtist.name} بنجاح`);
+    } catch (error) {
+      toast.error('حدث خطأ أثناء الإضافة');
+    }
   };
 
-  const handleDeleteArtist = (id: number) => {
+  const handleDeleteArtist = async (id: string) => {
     if (!isAdmin) return toast.error("عذراً، المديرة فقط تملك صلاحية الحذف");
-    const updated = artists.filter((a: any) => a.id !== id);
-    setArtists(updated);
-    localStorage.setItem('voxdub_artists_v2', JSON.stringify(updated));
-    toast.success('تم حذف المعلق');
+    if (!window.confirm("هل أنت متأكد من حذف هذا المعلق؟")) return;
+
+    try {
+      await deleteDoc(doc(db, "artists", id));
+      toast.success('تم حذف المعلق بنجاح');
+    } catch (error) {
+      toast.error('فشل الحذف');
+    }
   };
 
-  const toggleAudio = (id: number, audioUrl: string) => {
+  const toggleAudio = (id: string, audioUrl: string) => {
     if (!audioUrl) return toast.error("العينة غير متاحة لهذا المعلق");
     if (playingId === id) { currentAudio?.pause(); setPlayingId(null); }
     else {
@@ -143,7 +149,12 @@ export function Artists() {
     }
   };
 
-  const filteredArtists = artists.filter((a: any) => a.name?.includes(searchQuery) || a.role?.includes(searchQuery));
+  const filteredArtists = artists.filter((a: any) => 
+    a.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    a.role?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">جاري تحميل المكتبة الصوتية...</div>;
 
   return (
     <div className="p-4 space-y-6 text-right px-6" dir="rtl">
@@ -157,7 +168,6 @@ export function Artists() {
       <div className="flex justify-between items-center mb-10">
         <h1 className="text-4xl font-black italic">المكتبة <span style={{ color: themeColor }}>الصوتية</span></h1>
         
-        {/* زر الإضافة يظهر للمديرة فقط */}
         {isAdmin && (
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -170,10 +180,17 @@ export function Artists() {
               <div className="space-y-4">
                 <Input placeholder="الاسم الكامل" value={newArtist.name} onChange={(e) => setNewArtist({...newArtist, name: e.target.value})} className="h-14 rounded-xl px-4 font-bold" />
                 <Input placeholder="التخصص (مثلاً: وثائقي)" value={newArtist.role} onChange={(e) => setNewArtist({...newArtist, role: e.target.value})} className="h-14 rounded-xl px-4 font-bold" />
+                <div className="grid grid-cols-2 gap-4">
+                  <select value={newArtist.gender} onChange={(e) => setNewArtist({...newArtist, gender: e.target.value})} className="h-14 rounded-xl px-4 font-bold border border-stone-200 outline-none">
+                    <option value="ذكر">ذكر</option>
+                    <option value="أنثى">أنثى</option>
+                  </select>
+                  <Input placeholder="سنوات الخبرة" type="number" value={newArtist.experienceYears} onChange={(e) => setNewArtist({...newArtist, experienceYears: e.target.value})} className="h-14 rounded-xl px-4 font-bold" />
+                </div>
                 <Button onClick={() => setIsAudioModalOpen(true)} variant="outline" className="w-full h-14 rounded-xl border-dashed border-2 font-bold">
                   {newArtist.audioName || "رفع عينة الصوت (اختياري)"}
                 </Button>
-                <Button onClick={handleAddArtist} className="w-full h-14 rounded-xl font-black text-white" style={{ background: themeColor }}>حفظ البيانات</Button>
+                <Button onClick={handleAddArtist} className="w-full h-14 rounded-xl font-black text-white" style={{ background: themeColor }}>حفظ البيانات في السحابة</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -190,19 +207,19 @@ export function Artists() {
           <div key={artist.id} className="bg-white rounded-[2.5rem] p-6 border border-stone-50 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center gap-4 mb-6 cursor-pointer" onClick={() => navigate(`/dashboard/artists/${artist.id}`)}>
               <div className="w-16 h-16 rounded-2xl bg-stone-100 overflow-hidden flex-shrink-0">
-                <img src={artist.image || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center font-black text-stone-300 bg-stone-50">${artist.name[0]}</div>` }} />
+                <img src={artist.imageUrl || '/images/default.jpg'} className="w-full h-full object-cover" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center font-black text-stone-300 bg-stone-50">${artist.name[0]}</div>` }} />
               </div>
               <div className="flex-1">
                 <h3 className="font-black text-stone-900">{artist.name}</h3>
                 <p className="text-sm font-bold" style={{ color: themeColor }}>{artist.role}</p>
-                {!artist.audio && <span className="text-[10px] text-red-400 font-bold italic">العينة غير متاحة</span>}
+                {(!artist.samples || artist.samples.length === 0) && <span className="text-[10px] text-red-400 font-bold italic">العينة غير متاحة</span>}
               </div>
             </div>
             
             <div className="flex gap-2">
               <button 
-                onClick={() => toggleAudio(artist.id, artist.audio)}
-                className={`flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2 transition-all ${!artist.audio ? 'opacity-30 cursor-not-allowed' : ''}`}
+                onClick={() => toggleAudio(artist.id, artist.samples?.[0]?.audio || artist.audio)}
+                className={`flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2 transition-all ${(!artist.samples?.[0]?.audio && !artist.audio) ? 'opacity-30 cursor-not-allowed' : ''}`}
                 style={{ backgroundColor: playingId === artist.id ? '#1c1917' : themeColor }}
               >
                 {playingId === artist.id ? <Pause size={16} /> : <Play size={16} />}
