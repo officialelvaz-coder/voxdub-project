@@ -11,8 +11,5 @@ const firebaseConfig = {
   measurementId: "G-R2EBWHN9S2"
 };
 
-// تهيئة التطبيق
 const app = initializeApp(firebaseConfig);
-
-// تصدير قاعدة البيانات
 export const db = getFirestore(app);
