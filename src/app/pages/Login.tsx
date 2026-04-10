@@ -1,55 +1,53 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Mic2, LogIn } from 'lucide-react';
-
-// هذه القائمة تظهر فقط في حال كان الموقع فارغاً تماماً لأول مرة
-const defaultArtists = [
-  { id: "1", name: "مصطفى جغلال" },
-  { id: "2", name: "لميس حميمي" },
-  { id: "3", name: "بلهادي محمد إسلام" },
-  { id: "4", name: "أحمد حاج إسماعيل" }
-];
+import { db } from '../firebase'; // تأكد من المسار الصحيح لملف firebase
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 export function Login() {
   const [password, setPassword] = useState('');
-  const [selectedArtist, setSelectedArtist] = useState('');
+  const [selectedArtistId, setSelectedArtistId] = useState('');
   const [artistsList, setArtistsList] = useState<{id: string, name: string}[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const themeColor = localStorage.getItem('voxdub_theme') || '#e11d48';
+  const themeColor = '#e11d48'; // اللون الأحمر الملكي لمشروعك
 
   useEffect(() => {
-    localStorage.removeItem('voxdub_user_role');
-    localStorage.removeItem('voxdub_logged_artist_id');
-    
-    // جلب البيانات الحية من ذاكرة الموقع
-    const saved = localStorage.getItem('voxdub_artists_v2');
-    let allArtists = saved ? JSON.parse(saved) : defaultArtists;
+    const fetchArtists = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "artists"));
+        const artists = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name
+        }));
+        setArtistsList(artists);
+      } catch (error) {
+        console.error("Error fetching artists: ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // 🟢 التعديل الجوهري: إزالة slice(0, 4) لعرض الجميع تلقائياً
-    // واستبعاد الأسماء المحجوزة للمديرين فقط
-    const filteredList = allArtists.filter((a: any) => 
-      a.name !== "مديرة الموقع" && 
-      a.name !== "Admin" && 
-      a.name !== "لميس" // استبعاد اسم المديرة إذا كان موجوداً كمعلق
-    );
-
-    setArtistsList(filteredList);
+    fetchArtists();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
     // دخول المديرة (بدون اختيار اسم + كلمة سر admin123)
-    if (!selectedArtist && password === 'admin123') {
+    if (!selectedArtistId && password === 'admin123') {
       localStorage.setItem('voxdub_user_role', 'admin');
       window.location.href = '/dashboard/artists';
       return;
     }
 
     // دخول المعلق (اختيار اسم + كلمة سر artist123)
-    if (selectedArtist && password === 'artist123') {
+    if (selectedArtistId && password === 'artist123') {
       localStorage.setItem('voxdub_user_role', 'artist');
-      localStorage.setItem('voxdub_logged_artist_id', selectedArtist);
-      window.location.href = `/dashboard/artists/${selectedArtist}`;
+      localStorage.setItem('voxdub_logged_artist_id', selectedArtistId);
+      // التوجيه إلى لوحة تحكم المعلق
+      window.location.href = `/dashboard/artists/${selectedArtistId}`;
       return;
     }
 
@@ -71,14 +69,13 @@ export function Login() {
           <div>
             <label className="block text-sm font-black text-stone-700 mb-2 mr-1">الحساب</label>
             <select
-              value={selectedArtist}
-              onChange={(e) => setSelectedArtist(e.target.value)}
+              value={selectedArtistId}
+              onChange={(e) => setSelectedArtistId(e.target.value)}
               className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none font-bold text-stone-600 bg-stone-50 transition-all"
               style={{ '--tw-ring-color': themeColor } as any}
+              disabled={loading}
             >
-              <option value="">دخول كمدير (المديرة لميس)</option>
-              
-              {/* سيعرض الآن كل المعلقين المضافين في localStorage */}
+              <option value="">{loading ? 'جاري التحميل...' : 'دخول كمدير (المديرة لميس)'}</option>
               {artistsList.map((artist) => (
                 <option key={artist.id} value={artist.id}>
                   {artist.name}
