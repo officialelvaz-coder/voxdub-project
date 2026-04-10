@@ -1,76 +1,40 @@
+'use client';
 import { useState } from 'react';
-import { Send, CheckCircle, Loader2 } from 'lucide-react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner';
-
 import { db } from '../firebase'; 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export function OrderForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', package: '', 
-    voiceArtist: '', projectType: '', description: '', 
-    duration: '', deadline: ''
-  });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const sendOrder = async (e: any) => {
     e.preventDefault();
-    setIsSending(true);
+    setLoading(true);
     try {
+      const target = e.target;
       await addDoc(collection(db, "orders"), {
-        ...formData,
-        status: 'جديد',
+        name: target.name.value,
+        email: target.email.value,
+        description: target.description.value,
         createdAt: serverTimestamp()
       });
       setIsSubmitted(true);
-      toast.success('تم إرسال طلبك بنجاح!');
-    } catch (error) {
-      console.error("Error: ", error);
-      toast.error('حدث خطأ أثناء الإرسال');
-    } finally {
-      setIsSending(false);
+    } catch (err) {
+      alert("حدث خطأ، تأكد من اتصالك");
     }
+    setLoading(false);
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  if (isSubmitted) {
-    return (
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <CheckCircle className="size-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold">تم استلام طلبك بنجاح!</h3>
-        </div>
-      </section>
-    );
-  }
+  if (isSubmitted) return <div className="p-10 text-center font-bold text-green-600">تم استلام طلبك! سنقوم بالرد عليك قريباً.</div>;
 
   return (
-    <section className="py-20 bg-white" dir="rtl">
-      <div className="container mx-auto px-4 max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Label>الاسم الكامل</Label>
-          <Input required onChange={(e) => handleChange('name', e.target.value)} />
-          <Label>البريد الإلكتروني</Label>
-          <Input type="email" required onChange={(e) => handleChange('email', e.target.value)} />
-          <Label>رقم الهاتف</Label>
-          <Input required onChange={(e) => handleChange('phone', e.target.value)} />
-          <Label>تفاصيل المشروع</Label>
-          <Textarea required onChange={(e) => handleChange('description', e.target.value)} />
-          <Button type="submit" disabled={isSending} className="w-full bg-black text-white py-4">
-            {isSending ? 'جاري الإرسال...' : 'تأكيد وإرسال الطلب'}
-          </Button>
-        </form>
-      </div>
-    </section>
+    <form onSubmit={sendOrder} className="max-w-md mx-auto p-6 space-y-4" dir="rtl">
+      <input name="name" placeholder="الاسم الكامل" required className="w-full p-2 border rounded" />
+      <input name="email" type="email" placeholder="البريد الإلكتروني" required className="w-full p-2 border rounded" />
+      <textarea name="description" placeholder="تفاصيل المشروع" required className="w-full p-2 border rounded" />
+      <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded">
+        {loading ? "جاري الإرسال..." : "إرسال الطلب"}
+      </button>
+    </form>
   );
 }
