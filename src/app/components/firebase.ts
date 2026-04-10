@@ -11,6 +11,6 @@ const firebaseConfig = {
   measurementId: "G-R2EBWHN9S2"
 };
 
-// منع إعادة التهيئة المتكررة في Next.js
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// تهيئة التطبيق مع تصدير app لاستخدامه في رفع الملفات
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
