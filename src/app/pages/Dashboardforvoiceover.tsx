@@ -1,46 +1,42 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { 
-  Camera, Upload, Play, Pause, Home, User, 
-  FileText, Plus, Trash2, Mic2, Save, LogOut
-} from 'lucide-react';
-import { db, app } from '../../firebase'; // تأكد من المسار الصحيح لملف firebase
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { db, app } from '../components/firebase'; // تم تصحيح المسار هنا
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { toast } from 'sonner';
+import { Camera, Mic, Play, Pause, Trash2, Plus, X, CheckCircle2, CloudUpload } from 'lucide-react';
 
 export function Dashboardforvoiceover() {
-  const params = useParams();
-  const artistId = params.id as string;
+  const { artistId } = useParams();
+  const [artistData, setArtistData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [newSampleFile, setNewSampleFile] = useState<File | null>(null);
+  const [newSampleTitle, setNewSampleTitle] = useState('');
+  const [playingSampleId, setPlayingSampleId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 1. جلب لون الهوية المختار ليبقى الموقع متناسقاً
   const [themeColor] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48');
 
-  // 2. حالات البيانات
-  const [artistData, setArtistData] = useState<any>(null);
-  const [myBio, setMyBio] = useState("");
-  const [mySamples, setMySamples] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-
-  // 3. جلب البيانات من Firebase Firestore
   useEffect(() => {
+    if (!artistId) return;
+
     const fetchArtistData = async () => {
-      if (!artistId) return;
+      setLoading(true);
       try {
         const docRef = doc(db, "artists", artistId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          setArtistData(data);
-          setMyBio(data.bio || "");
-          setMySamples(data.samples || []);
+          setArtistData({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          toast.error("لم يتم العثور على بيانات المعلق.");
         }
-      } catch (err) {
-        console.error("Error fetching artist data: ", err);
+      } catch (error) {
+        console.error("Error fetching artist data: ", error);
+        toast.error("فشل جلب بيانات المعلق.");
       } finally {
         setLoading(false);
       }
@@ -49,263 +45,229 @@ export function Dashboardforvoiceover() {
     fetchArtistData();
   }, [artistId]);
 
-  // 4. دالة الحفظ النهائي (تحديث النبذة في Firestore)
-  const saveAllChanges = async () => {
-    if (!artistId) return;
-    setLoading(true);
-    try {
-      await updateDoc(doc(db, "artists", artistId), {
-        bio: myBio
-      });
-      alert("✨ تم حفظ جميع التعديلات في ملفك الشخصي بنجاح!");
-    } catch (err) {
-      console.error("Error saving changes: ", err);
-      alert("❌ حدث خطأ أثناء الحفظ، يرجى المحاولة لاحقاً.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!artistId || !e.target.files || e.target.files.length === 0) return;
 
-  // نظام مشغل الصوت
-  const toggleAudio = (id: string, audioUrl: string) => {
-    if (!audioUrl || audioUrl === "#") {
-      alert("عذراً، العينة الصوتية قيد التجهيز!");
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast.error('يُقبل فقط ملفات الصور.');
       return;
     }
-    if (playingId === id) {
-      currentAudio?.pause();
-      setPlayingId(null);
-    } else {
-      if (currentAudio) currentAudio.pause();
-      const newAudio = new Audio(audioUrl);
-      newAudio.play();
-      setCurrentAudio(newAudio);
-      setPlayingId(id);
-      newAudio.onended = () => setPlayingId(null);
-    }
-  };
 
-  // رفع الصورة الشخصية لـ Firebase Storage
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !artistId) return;
-
-    setUploading(true);
+    setIsSaving(true);
     try {
       const storage = getStorage(app);
-      const storageRef = ref(storage, `artists/${artistId}/profile_${Date.now()}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      const imageRef = ref(storage, `artists/${artistId}/profile_image_${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(imageRef, file);
+      const imageUrl = await getDownloadURL(snapshot.ref);
 
-      await updateDoc(doc(db, "artists", artistId), {
-        imageUrl: downloadURL
-      });
-
-      setArtistData({ ...artistData, imageUrl: downloadURL });
-      alert("📸 تم تحديث الصورة الشخصية بنجاح!");
-    } catch (err) {
-      console.error("Error uploading image: ", err);
-      alert("❌ فشل رفع الصورة.");
+      const artistDocRef = doc(db, "artists", artistId);
+      await updateDoc(artistDocRef, { imageUrl });
+      setArtistData((prev: any) => ({ ...prev, imageUrl }));
+      toast.success('تم تحديث الصورة الشخصية بنجاح!');
+    } catch (error) {
+      console.error("Error uploading image: ", error);
+      toast.error('فشل تحديث الصورة الشخصية.');
     } finally {
-      setUploading(false);
+      setIsSaving(false);
     }
   };
 
-  // إضافة عينة صوتية جديدة لـ Firebase Storage
-  const addNewSample = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'audio/mp3';
-    input.onchange = async (e: any) => {
-      const file = e.target.files[0];
-      if (file && artistId) {
-        const title = prompt("أدخل عنوان العينة الصوتية الجديدة:");
-        const finalTitle = title ? title : "عينة جديدة";
-        
-        setUploading(true);
-        try {
-          const storage = getStorage(app);
-          const storageRef = ref(storage, `artists/${artistId}/samples/${Date.now()}_${file.name}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          const downloadURL = await getDownloadURL(snapshot.ref);
-
-          const newSample = {
-            id: Date.now().toString(),
-            title: finalTitle,
-            audio: downloadURL
-          };
-
-          await updateDoc(doc(db, "artists", artistId), {
-            samples: arrayUnion(newSample)
-          });
-
-          setMySamples([...mySamples, newSample]);
-          alert("🎵 تم إضافة العينة الصوتية بنجاح!");
-        } catch (err) {
-          console.error("Error uploading audio: ", err);
-          alert("❌ فشل رفع العينة الصوتية.");
-        } finally {
-          setUploading(false);
-        }
-      }
-    };
-    input.click();
-  };
-
-  // حذف عينة صوتية من Firestore
-  const deleteSample = async (sample: any) => {
-    if (window.confirm("هل أنت متأكد من حذف هذه العينة؟")) {
-      try {
-        await updateDoc(doc(db, "artists", artistId), {
-          samples: arrayRemove(sample)
-        });
-        setMySamples(mySamples.filter((s: any) => s.id !== sample.id));
-        if (playingId === sample.id) {
-          currentAudio?.pause();
-          setPlayingId(null);
-        }
-        alert("🗑️ تم حذف العينة بنجاح.");
-      } catch (err) {
-        console.error("Error deleting sample: ", err);
-        alert("❌ فشل حذف العينة.");
-      }
+  const handleUpdateBio = async () => {
+    if (!artistId || !artistData) return;
+    setIsSaving(true);
+    try {
+      const artistDocRef = doc(db, "artists", artistId);
+      await updateDoc(artistDocRef, { bio: artistData.bio });
+      toast.success('تم تحديث النبذة التعريفية بنجاح!');
+    } catch (error) {
+      console.error("Error updating bio: ", error);
+      toast.error('فشل تحديث النبذة التعريفية.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">جاري تحميل لوحة التحكم...</div>;
+  const handleSampleUpload = async () => {
+    if (!artistId || !newSampleFile || !newSampleTitle.trim()) {
+      toast.error('الرجاء اختيار ملف صوتي وكتابة عنوان للعينة.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const storage = getStorage(app);
+      const sampleRef = ref(storage, `artists/${artistId}/samples/${Date.now()}_${newSampleFile.name}`);
+      const snapshot = await uploadBytes(sampleRef, newSampleFile);
+      const sampleUrl = await getDownloadURL(snapshot.ref);
+
+      const artistDocRef = doc(db, "artists", artistId);
+      const newSample = { id: Date.now().toString(), title: newSampleTitle, audio: sampleUrl };
+      await updateDoc(artistDocRef, { samples: arrayUnion(newSample) });
+      setArtistData((prev: any) => ({ ...prev, samples: [...(prev.samples || []), newSample] }));
+      setNewSampleFile(null);
+      setNewSampleTitle('');
+      toast.success('تم إضافة العينة الصوتية بنجاح!');
+    } catch (error) {
+      console.error("Error uploading sample: ", error);
+      toast.error('فشل إضافة العينة الصوتية.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteSample = async (sampleId: string, sampleUrl: string) => {
+    if (!artistId || !artistData || !window.confirm('هل أنت متأكد من حذف هذه العينة الصوتية؟')) return;
+
+    setIsSaving(true);
+    try {
+      // حذف الملف من Firebase Storage
+      const storage = getStorage(app);
+      const fileRef = ref(storage, sampleUrl);
+      await deleteObject(fileRef);
+
+      // حذف الرابط من Firestore
+      const artistDocRef = doc(db, "artists", artistId);
+      const sampleToRemove = artistData.samples.find((s: any) => s.id === sampleId);
+      if (sampleToRemove) {
+        await updateDoc(artistDocRef, { samples: arrayRemove(sampleToRemove) });
+        setArtistData((prev: any) => ({ ...prev, samples: prev.samples.filter((s: any) => s.id !== sampleId) }));
+        toast.success('تم حذف العينة الصوتية بنجاح!');
+      }
+    } catch (error) {
+      console.error("Error deleting sample: ", error);
+      toast.error('فشل حذف العينة الصوتية.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleAudio = (sampleUrl: string, sampleId: string) => {
+    if (audioRef.current && playingSampleId === sampleId) {
+      audioRef.current.pause();
+      setPlayingSampleId(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(sampleUrl);
+      audioRef.current.play().catch(e => toast.error('فشل تشغيل العينة: ' + e.message));
+      setPlayingSampleId(sampleId);
+      audioRef.current.onended = () => setPlayingSampleId(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center font-bold text-stone-700">جاري تحميل لوحة التحكم...</div>;
+  }
+
+  if (!artistData) {
+    return <div className="min-h-screen flex items-center justify-center font-bold text-red-600">عذراً، لا توجد بيانات لهذا المعلق.</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-stone-50 font-sans text-right flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-gray-50 p-8 text-right" dir="rtl">
       <style>{`
-        .dynamic-text { color: ${themeColor} !important; }
-        .dynamic-bg { background-color: ${themeColor} !important; }
-        .dynamic-border { border-color: ${themeColor} !important; }
-        .hover-bg:hover { background-color: ${themeColor} !important; color: white !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        *, body { font-family: 'Cairo', sans-serif !important; }
       `}</style>
+      <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-xl p-10 border border-stone-100">
+        <h1 className="text-4xl font-black text-stone-900 mb-8">لوحة تحكم <span style={{ color: themeColor }}>{artistData.name}</span></h1>
 
-      {/* الهيدر */}
-      <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Mic2 className="dynamic-text w-6 h-6" />
-            <span className="font-black text-xl text-stone-900">مساحة المعلق</span>
+        {/* قسم الصورة الشخصية */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-stone-200 shadow-md">
+            <img 
+              src={artistData.imageUrl || '/images/default_avatar.png'} 
+              alt={artistData.name} 
+              className="w-full h-full object-cover"
+            />
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              disabled={isSaving}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 hover:opacity-100 transition-opacity duration-300">
+              <Camera size={30} />
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-stone-500 hover:dynamic-text transition-colors text-sm font-bold flex items-center gap-1">
-              <Home size={16} /> الرئيسية
-            </a>
-            <a href="/login" className="text-red-500 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors text-sm font-bold flex items-center gap-1">
-              <LogOut size={16} /> خروج
-            </a>
-          </div>
+          <p className="text-xl font-bold text-stone-800 mt-4">{artistData.name}</p>
+          <p className="text-stone-500">{artistData.role}</p>
         </div>
-      </nav>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 w-full">
-        
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-right">
-          <div>
-            <h1 className="text-3xl font-black text-stone-900 mb-1">مرحباً، {artistData?.name} 🎙️</h1>
-            <p className="text-stone-500 font-medium">قم بإدارة عيناتك ونبذتك التعريفية ليراها العملاء بشكل احترافي.</p>
-          </div>
+        {/* قسم النبذة التعريفية */}
+        <div className="mb-10">
+          <label className="block text-lg font-black text-stone-700 mb-3">النبذة التعريفية</label>
+          <textarea
+            value={artistData.bio || ''}
+            onChange={(e) => setArtistData((prev: any) => ({ ...prev, bio: e.target.value }))}
+            className="w-full p-4 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-stone-300 bg-stone-50"
+            rows={5}
+            disabled={isSaving}
+          ></textarea>
           <button 
-            onClick={saveAllChanges}
-            disabled={loading}
-            className="flex items-center gap-2 dynamic-bg text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:brightness-90 transition-all disabled:bg-stone-300"
+            onClick={handleUpdateBio} 
+            className="mt-4 px-6 py-3 rounded-xl font-bold text-white shadow-md transition-all duration-300 disabled:bg-stone-300"
+            style={{ backgroundColor: themeColor }}
+            disabled={isSaving}
           >
-            <Save size={20} /> {loading ? "جاري الحفظ..." : "حفظ التعديلات في الملف"}
+            {isSaving ? 'جاري الحفظ...' : 'حفظ النبذة'}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* الملف الشخصي */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm text-center">
-              <div className="relative w-32 h-32 mx-auto mb-6 bg-stone-100 rounded-full flex items-center justify-center border-4 border-white shadow-inner overflow-hidden">
-                {artistData?.imageUrl ? (
-                  <img src={artistData.imageUrl} alt={artistData.name} className="w-full h-full object-cover" />
-                ) : (
-                  <User size={60} className="text-stone-300" />
-                )}
-                <label className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-all border border-stone-100">
-                  <Camera size={16} className="dynamic-text" />
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-                </label>
-              </div>
-              <h3 className="text-xl font-black text-stone-900 mb-1">{artistData?.name}</h3>
-              <p className="dynamic-text font-bold text-sm mb-6" dir="ltr">@{artistData?.username || 'Artist'}</p>
-              
-              <div className="text-right space-y-4 pt-4 border-t border-stone-50">
-                <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
-                  <span className="text-xs font-bold text-stone-400 block mb-1">اللغات:</span>
-                  <span className="text-sm font-bold text-stone-700">{artistData?.language || 'العربية'}</span>
-                </div>
-                <div className="bg-stone-50 p-3 rounded-xl border border-stone-100">
-                  <span className="text-xs font-bold text-stone-400 block mb-1">الخبرة:</span>
-                  <span className="text-sm font-bold text-stone-700">{artistData?.experience || 'معلق محترف'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* النبذة والعينات */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
-              <label className="text-sm font-black text-stone-900 mb-4 flex items-center gap-2">
-                <FileText size={18} className="dynamic-text"/> النبذة التعريفية الشخصية
-              </label>
-              <textarea 
-                rows={4}
-                value={myBio}
-                onChange={(e) => setMyBio(e.target.value)}
-                className="w-full text-stone-600 bg-stone-50 border border-stone-200 rounded-2xl p-4 focus:dynamic-border outline-none transition-all resize-none leading-relaxed font-medium"
-                placeholder="اكتب نبذة عنك..."
-              />
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <label className="text-sm font-black text-stone-900 flex items-center gap-2">
-                  <Mic2 size={18} className="dynamic-text"/> معرض عيناتك الصوتية
-                </label>
+        {/* قسم العينات الصوتية */}
+        <div>
+          <h2 className="text-2xl font-black text-stone-900 mb-5">عينات صوتية</h2>
+          <div className="space-y-4 mb-6">
+            {(artistData.samples || []).map((sample: any) => (
+              <div key={sample.id} className="flex items-center bg-stone-50 p-4 rounded-xl border border-stone-200 shadow-sm">
                 <button 
-                  onClick={addNewSample}
-                  disabled={uploading}
-                  className="flex items-center gap-2 bg-stone-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:dynamic-bg transition-colors disabled:bg-stone-300"
+                  onClick={() => toggleAudio(sample.audio, sample.id)} 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white transition-all duration-300"
+                  style={{ backgroundColor: playingSampleId === sample.id ? '#1c1917' : themeColor }}
                 >
-                  <Plus size={16} /> {uploading ? "جاري الرفع..." : "إضافة عينة"}
+                  {playingSampleId === sample.id ? <Pause size={20} /> : <Play size={20} />}
+                </button>
+                <p className="flex-1 font-bold text-stone-700 mr-4">{sample.title}</p>
+                <button 
+                  onClick={() => handleDeleteSample(sample.id, sample.audio)} 
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-300"
+                  disabled={isSaving}
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
+            ))}
+          </div>
 
-              <div className="space-y-3">
-                {mySamples.map((sample: any) => (
-                  <div key={sample.id} className="flex items-center justify-between p-4 rounded-2xl border border-stone-100 bg-stone-50 hover:dynamic-border transition-all group">
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => toggleAudio(sample.id, sample.audio)}
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                          playingId === sample.id 
-                            ? "dynamic-bg text-white shadow-lg" 
-                            : "bg-white text-stone-400 border border-stone-200 hover:dynamic-text hover:border-vox-primary"
-                        }`}
-                      >
-                        {playingId === sample.id ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
-                      </button>
-                      <h4 className="font-bold text-stone-900">{sample.title}</h4>
-                    </div>
-                    <button 
-                      onClick={() => deleteSample(sample)}
-                      className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          {/* إضافة عينة جديدة */}
+          <div className="p-6 border border-dashed border-stone-300 rounded-xl bg-stone-50">
+            <h3 className="text-xl font-black text-stone-800 mb-4">إضافة عينة صوتية جديدة</h3>
+            <input 
+              type="text" 
+              placeholder="عنوان العينة الصوتية (مثلاً: إعلان تجاري)" 
+              value={newSampleTitle}
+              onChange={(e) => setNewSampleTitle(e.target.value)}
+              className="w-full p-3 mb-4 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-stone-300 bg-white"
+              disabled={isSaving}
+            />
+            <input 
+              type="file" 
+              accept="audio/*" 
+              onChange={(e) => setNewSampleFile(e.target.files ? e.target.files[0] : null)}
+              className="w-full text-sm text-stone-500 cursor-pointer mb-4"
+              disabled={isSaving}
+            />
+            <button 
+              onClick={handleSampleUpload} 
+              className="w-full px-6 py-3 rounded-xl font-bold text-white shadow-md transition-all duration-300 disabled:bg-stone-300"
+              style={{ backgroundColor: themeColor }}
+              disabled={isSaving || !newSampleFile || !newSampleTitle.trim()}
+            >
+              {isSaving ? 'جاري الرفع...' : 'رفع العينة'}
+            </button>
           </div>
         </div>
       </div>
