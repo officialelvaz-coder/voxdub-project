@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Upload, CheckCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, Loader2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,13 +8,14 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 
-// استيراد قاعدة البيانات
+// استيراد قاعدة البيانات من ملفك المحلي
 import { db } from '../firebase'; 
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+// استيراد دوال Firebase عبر الرابط المباشر لتجنب أخطاء Vercel
+import { collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 export function OrderForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSending, setIsSending] = useState(false); // حالة التحميل أثناء الإرسال
+  const [isSending, setIsSending] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,17 +33,16 @@ export function OrderForm() {
     setIsSending(true);
 
     try {
-      // حفظ الطلب في مجموعة تسمى "orders" في Firestore
+      // إرسال البيانات إلى مجموعة "orders" في Firestore
       await addDoc(collection(db, "orders"), {
         ...formData,
-        status: 'جديد', // حالة الطلب الافتراضية
-        createdAt: serverTimestamp() // وقت إرسال الطلب تلقائياً
+        status: 'جديد',
+        createdAt: serverTimestamp()
       });
 
       setIsSubmitted(true);
-      toast.success('تم إرسال طلبك بنجاح! سنتواصل معك قريباً');
+      toast.success('تم إرسال طلبك بنجاح!');
       
-      // إعادة ضبط النموذج بعد 5 ثوانٍ
       setTimeout(() => {
         setIsSubmitted(false);
         setFormData({
@@ -54,7 +54,7 @@ export function OrderForm() {
 
     } catch (error) {
       console.error("Error adding order: ", error);
-      toast.error('عذراً، حدث خطأ أثناء إرسال الطلب. حاول مجدداً');
+      toast.error('حدث خطأ أثناء الإرسال. حاول مجدداً');
     } finally {
       setIsSending(false);
     }
@@ -108,7 +108,7 @@ export function OrderForm() {
                   onChange={(e) => handleChange('name', e.target.value)}
                   placeholder="أدخل اسمك الكامل"
                   required
-                  className="rounded-xl h-12 focus:border-vox-primary"
+                  className="rounded-xl h-12"
                 />
               </div>
 
@@ -121,7 +121,7 @@ export function OrderForm() {
                   onChange={(e) => handleChange('email', e.target.value)}
                   placeholder="example@email.com"
                   required
-                  className="rounded-xl h-12 focus:border-vox-primary"
+                  className="rounded-xl h-12"
                 />
               </div>
 
@@ -134,7 +134,7 @@ export function OrderForm() {
                   onChange={(e) => handleChange('phone', e.target.value)}
                   placeholder="+213 5X XXX XXXX"
                   required
-                  className="rounded-xl h-12 focus:border-vox-primary"
+                  className="rounded-xl h-12"
                 />
               </div>
 
@@ -162,14 +162,8 @@ export function OrderForm() {
                 placeholder="صف مشروعك بالتفصيل..."
                 required
                 rows={5}
-                className="rounded-2xl focus:border-vox-primary"
+                className="rounded-2xl"
               />
-            </div>
-
-            <div className="bg-stone-50 p-6 rounded-2xl border-r-8 border-vox-primary">
-              <p className="text-sm text-gray-800 leading-relaxed font-bold italic">
-                ملاحظة: بعد إرسال الطلب، سيتم مراجعته فوراً وسيرد عليك أحد مسؤولي ستوديو VoxDub.
-              </p>
             </div>
 
             <Button
