@@ -1,225 +1,147 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../components/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../components/firebase'; // المسار الصحيح
+import { useRouter } from 'next/navigation'; // استخدام router الخاص بـ Next.js
+import Link from 'next/link';
 
-interface ArtistData {
-  name: string;
-  email: string;
-  gender: string;
-  voiceType: string;
-  profilePicture?: string;
-  audioSamples?: string[];
-}
-
-const Dashboard: React.FC = () => {
-  const searchParams = useSearchParams();
-  const artistId = searchParams.get('artistId');
-  const [artistData, setArtistData] = useState<ArtistData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
-  const [audioSampleFile, setAudioSampleFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState<boolean>(false);
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+const Artists = () => {
+  const [artists, setArtists] = useState<any[]>([]);
+  const [filteredArtists, setFilteredArtists] = useState<any[]>([]);
+  const [genderFilter, setGenderFilter] = useState('الكل');
+  const [voiceFilter, setVoiceFilter] = useState('الكل');
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!artistId) {
-      setError('معرف المعلق غير موجود.');
-      setLoading(false);
-      return;
-    }
-
-    const fetchArtistData = async () => {
+    const fetchArtists = async () => {
       try {
-        const docRef = doc(db, 'artists', artistId);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          setArtistData(docSnap.data() as ArtistData);
-        } else {
-          setError('لم يتم العثور على بيانات المعلق.');
-        }
+        const querySnapshot = await getDocs(collection(db, 'artists'));
+        const artistsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setArtists(artistsData);
+        setFilteredArtists(artistsData);
+        setLoading(false);
       } catch (err) {
-        console.error('Error fetching artist data:', err);
-        setError('فشل في جلب بيانات المعلق.');
+        console.error("Error fetching artists:", err);
+        setLoading(false);
       }
-      setLoading(false);
     };
+    fetchArtists();
+  }, []);
 
-    fetchArtistData();
-  }, [artistId]);
-
-  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePictureFile(e.target.files[0]);
+  useEffect(() => {
+    let result = artists;
+    if (genderFilter !== 'الكل') {
+      result = result.filter(a => a.gender === genderFilter);
     }
-  };
-
-  const handleAudioSampleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAudioSampleFile(e.target.files[0]);
+    if (voiceFilter !== 'الكل') {
+      result = result.filter(a => a.voiceType === voiceFilter);
     }
-  };
-
-  const uploadFile = async (file: File, path: string) => {
-    if (!file) return null;
-    const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, file);
-    return getDownloadURL(fileRef);
-  };
-
-  const handleUpload = async () => {
-    if (!artistId) return;
-    setUploading(true);
-    setUploadMessage(null);
-
-    try {
-      const updatedFields: Partial<ArtistData> = {};
-
-      if (profilePictureFile) {
-        const profilePictureURL = await uploadFile(
-          profilePictureFile,
-          `artists/${artistId}/profilePictures/${profilePictureFile.name}`
-        );
-        if (profilePictureURL) {
-          updatedFields.profilePicture = profilePictureURL;
-        }
-      }
-
-      if (audioSampleFile) {
-        const audioSampleURL = await uploadFile(
-          audioSampleFile,
-          `artists/${artistId}/audioSamples/${audioSampleFile.name}`
-        );
-        if (audioSampleURL) {
-          updatedFields.audioSamples = [...(artistData?.audioSamples || []), audioSampleURL];
-        }
-      }
-
-      if (Object.keys(updatedFields).length > 0) {
-        const artistDocRef = doc(db, 'artists', artistId);
-        await updateDoc(artistDocRef, updatedFields);
-        setArtistData(prev => (prev ? { ...prev, ...updatedFields } : null));
-        setUploadMessage('تم الرفع بنجاح!');
-        setProfilePictureFile(null);
-        setAudioSampleFile(null);
-      } else {
-        setUploadMessage('الرجاء اختيار ملف للرفع.');
-      }
-    } catch (err) {
-      console.error('Error uploading files:', err);
-      setUploadMessage('فشل الرفع: ' + (err as Error).message);
-    } finally {
-      setUploading(false);
-    }
-  };
+    setFilteredArtists(result);
+  }, [genderFilter, voiceFilter, artists]);
 
   if (loading) {
-    return <div className="text-center py-10">جاري التحميل...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-10 text-red-500">خطأ: {error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
+        <div className="text-xl font-bold text-blue-600 animate-pulse">جاري تحميل قائمة المعلقين...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-3xl font-bold text-red-800 mb-2 text-center">
-          لوحة تحكم المعلق
-        </h2>
-        <p className="text-center text-gray-600 mb-6">مرحباً بك، {artistData?.name}</p>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8" dir="rtl">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <h1 className="text-4xl font-bold text-gray-800">تصفح المعلقين الصوتيين</h1>
+          <Link href="/" className="text-blue-600 hover:underline font-medium">العودة للرئيسية</Link>
+        </div>
 
-        <div className="mb-8 p-6 bg-red-50 rounded-lg border border-red-200">
-          <h3 className="text-xl font-semibold text-red-800 mb-4">معلومات حسابك</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600 text-sm">الاسم:</p>
-              <p className="text-gray-800 font-semibold">{artistData?.name}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">البريد الإلكتروني:</p>
-              <p className="text-gray-800 font-semibold">{artistData?.email}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">الجنس:</p>
-              <p className="text-gray-800 font-semibold">{artistData?.gender === 'male' ? 'ذكر' : 'أنثى'}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">نوع الصوت:</p>
-              <p className="text-gray-800 font-semibold">
-                {artistData?.voiceType === 'young' ? 'شاب/شابة' :
-                 artistData?.voiceType === 'adult' ? 'بالغ/بالغة' :
-                 'طفل/طفلة'}
-              </p>
-            </div>
+        {/* الفلاتر */}
+        <div className="bg-white p-6 rounded-xl shadow-md mb-8 flex flex-wrap gap-6">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">الجنس</label>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="الكل">الكل</option>
+              <option value="ذكر">ذكر</option>
+              <option value="أنثى">أنثى</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">نوع الصوت</label>
+            <select
+              value={voiceFilter}
+              onChange={(e) => setVoiceFilter(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="الكل">الكل</option>
+              <option value="رخيم">رخيم</option>
+              <option value="ناعم">ناعم</option>
+              <option value="إعلاني">إعلاني</option>
+              <option value="وثائقي">وثائقي</option>
+            </select>
           </div>
         </div>
 
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">تحديث الصورة الشخصية</h3>
-          {artistData?.profilePicture && (
-            <div className="mb-4">
-              <p className="text-gray-600 mb-2">الصورة الحالية:</p>
-              <img src={artistData.profilePicture} alt="صورة شخصية" className="w-32 h-32 object-cover rounded-full border-4 border-red-800" />
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleProfilePictureChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-          />
-          {profilePictureFile && (
-            <p className="text-sm text-gray-600 mt-2">الملف المختار: {profilePictureFile.name}</p>
-          )}
-        </div>
+        {/* قائمة المعلقين */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredArtists.length > 0 ? (
+            filteredArtists.map((artist) => (
+              <div key={artist.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100">
+                <div className="h-48 bg-blue-100 flex items-center justify-center relative">
+                  {artist.profilePicture ? (
+                    <img src={artist.profilePicture} alt={artist.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-blue-400 text-6xl">🎙️</div>
+                  )}
+                  <div className="absolute bottom-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-bold text-blue-600 shadow-sm">
+                    {artist.voiceType}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{artist.name}</h3>
+                  <p className="text-gray-600 mb-4 flex items-center gap-2">
+                    <span>👤 {artist.gender}</span>
+                    <span className="text-gray-300">|</span>
+                    <span>🏷️ {artist.voiceType}</span>
+                  </p>
+                  
+                  {/* عينات الصوت */}
+                  <div className="space-y-3">
+                    {artist.audioSamples && artist.audioSamples.length > 0 ? (
+                      artist.audioSamples.map((sample: any, index: number) => (
+                        <div key={index} className="bg-gray-50 p-2 rounded-lg">
+                          <p className="text-xs text-gray-500 mb-1">{sample.name || `عينة ${index + 1}`}</p>
+                          <audio src={sample.url} controls className="w-full h-8" />
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">لا توجد عينات صوتية متاحة حالياً</p>
+                    )}
+                  </div>
 
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">إضافة عينة صوتية</h3>
-          {artistData?.audioSamples && artistData.audioSamples.length > 0 && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-gray-600 font-semibold mb-2">العينات الصوتية الحالية:</p>
-              <div className="space-y-2">
-                {artistData.audioSamples.map((sample, index) => (
-                  <audio key={index} controls src={sample} className="w-full h-8" />
-                ))}
+                  <button 
+                    onClick={() => alert('سيتم إضافة ميزة طلب التعليق قريباً!')}
+                    className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                  >
+                    طلب تعليق صوتي
+                  </button>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20 bg-white rounded-2xl shadow-sm">
+              <p className="text-gray-500 text-xl">لا يوجد معلقون يطابقون هذه الفلاتر حالياً.</p>
             </div>
           )}
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={handleAudioSampleChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-          />
-          {audioSampleFile && (
-            <p className="text-sm text-gray-600 mt-2">الملف المختار: {audioSampleFile.name}</p>
-          )}
         </div>
-
-        <button
-          onClick={handleUpload}
-          disabled={uploading || (!profilePictureFile && !audioSampleFile)}
-          className="w-full bg-red-800 hover:bg-red-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {uploading ? 'جاري الرفع...' : 'رفع الملفات'}
-        </button>
-
-        {uploadMessage && (
-          <p className={`mt-4 text-center text-sm font-semibold ${
-            uploadMessage.includes('فشل') ? 'text-red-500' : 'text-green-600'
-          }`}>
-            {uploadMessage}
-          </p>
-        )}
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default Artists;
