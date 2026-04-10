@@ -1,163 +1,96 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { auth, db } from '../../components/firebase';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../components/firebase'; // المسار الصحيح الآن
+import { useRouter } from 'next/navigation'; // استخدام router الخاص بـ Next.js
 
-const Login: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [adminPassword, setAdminPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loginMode, setLoginMode] = useState<'artist' | 'admin'>('artist');
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleArtistLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      const q = query(collection(db, 'artists'), where('uid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const artistDoc = querySnapshot.docs[0];
-        const artistId = artistDoc.id;
-        router.push(`/dashboard?artistId=${artistId}`);
-      } else {
-        setError('لم يتم العثور على بيانات المعلق.');
-      }
-    } catch (err: any) {
-      console.error('Error during login:', err);
-      if (err.code === 'auth/user-not-found') {
-        setError('البريد الإلكتروني غير مسجل.');
-      } else if (err.code === 'auth/wrong-password') {
-        setError('كلمة المرور غير صحيحة.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('البريد الإلكتروني غير صحيح.');
-      } else {
-        setError('فشل تسجيل الدخول: ' + err.message);
-      }
-    } finally {
-      setLoading(false);
+    // تسجيل دخول المدير (Admin)
+    if (username === 'admin' && password === 'admin123') {
+      localStorage.setItem('userRole', 'admin');
+      router.push('/admin'); // تأكد من وجود صفحة admin
+      return;
     }
-  };
-
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
 
     try {
-      if (adminPassword === 'admin123') {
-        router.push('/admin');
+      const querySnapshot = await getDocs(collection(db, 'artists'));
+      const artists = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // البحث عن المعلق ببياناته
+      const user = artists.find((a: any) => a.name === username && a.password === password);
+
+      if (user) {
+        localStorage.setItem('userRole', 'artist');
+        localStorage.setItem('userId', user.id);
+        router.push('/dashboard'); // التوجه للوحة التحكم
       } else {
-        setError('كلمة مرور المديرة غير صحيحة.');
+        setError('اسم المستخدم أو كلمة المرور غير صحيحة');
       }
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Error during login:", err);
+      setError('حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة لاحقاً.');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-red-800 mb-6">تسجيل الدخول</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4" dir="rtl">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">تسجيل الدخول - VoxDub</h2>
         
-        <div className="flex gap-4 mb-6">
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">اسم المستخدم</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              placeholder="أدخل اسمك المسجل"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              placeholder="أدخل كلمة المرور"
+              required
+            />
+          </div>
+
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
           <button
-            type="button"
-            onClick={() => setLoginMode('artist')}
-            className={`flex-1 py-2 px-4 rounded font-bold transition ${
-              loginMode === 'artist'
-                ? 'bg-red-800 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            type="submit"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md"
           >
-            معلق صوتي
+            دخول
           </button>
-          <button
-            type="button"
-            onClick={() => setLoginMode('admin')}
-            className={`flex-1 py-2 px-4 rounded font-bold transition ${
-              loginMode === 'admin'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">ليس لديك حساب؟</p>
+          <button 
+            onClick={() => router.push('/register')}
+            className="text-blue-600 font-bold hover:underline mt-2"
           >
-            مديرة
+            سجل كمعلق صوتي الآن
           </button>
         </div>
-
-        {loginMode === 'artist' ? (
-          <form onSubmit={handleArtistLogin}>
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">البريد الإلكتروني:</label>
-              <input
-                type="email"
-                id="email"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="أدخل بريدك الإلكتروني"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="mb-6">
-              <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">كلمة المرور:</label>
-              <input
-                type="password"
-                id="password"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="أدخل كلمة المرور"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
-            >
-              {loading ? 'جاري...' : 'تسجيل الدخول'}
-            </button>
-            <p className="text-center text-gray-600 text-sm mt-4">
-              لا تملك حساباً؟{' '}
-              <a href="/register" className="text-red-800 hover:text-red-700 font-bold">
-                سجل الآن
-              </a>
-            </p>
-          </form>
-        ) : (
-          <form onSubmit={handleAdminLogin}>
-            <div className="mb-6">
-              <label htmlFor="admin-password" className="block text-gray-700 text-sm font-bold mb-2">كلمة مرور المديرة:</label>
-              <input
-                type="password"
-                id="admin-password"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="أدخل كلمة مرور المديرة"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
-            >
-              {loading ? 'جاري...' : 'دخول المديرة'}
-            </button>
-          </form>
-        )}
       </div>
     </div>
   );
