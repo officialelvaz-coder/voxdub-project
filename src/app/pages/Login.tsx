@@ -1,110 +1,152 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mic2, LogIn } from 'lucide-react';
-import { db } from '../components/firebase'; // تم تصحيح المسار هنا
-import { collection, getDocs } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { auth, db } from '../components/firebase';
 
-export function Login() {
-  const [password, setPassword] = useState('');
-  const [selectedArtistId, setSelectedArtistId] = useState('');
-  const [artistsList, setArtistsList] = useState<{id: string, name: string}[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const [themeColor] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48');
+interface Artist {
+  id: string;
+  uid: string;
+  name: string;
+  email: string;
+}
 
-  useEffect(() => {
-    const fetchArtists = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "artists"));
-        const artists = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          name: doc.data().name
-        }));
-        setArtistsList(artists);
-      } catch (error) {
-        console.error("Error fetching artists: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+const Login: React.FC = () => {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
 
-    fetchArtists();
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedArtistId && password === 'admin123') {
-      localStorage.setItem('voxdub_user_role', 'admin');
-      window.location.href = '/dashboard/artists';
-      return;
-    }
+    setError('');
+    setLoading(true);
 
-    if (selectedArtistId && password === 'artist123') {
-      localStorage.setItem('voxdub_user_role', 'artist');
-      localStorage.setItem('voxdub_logged_artist_id', selectedArtistId);
-      window.location.href = `/dashboard/artists/${selectedArtistId}`;
-      return;
-    }
+    try {
+      // تسجيل الدخول باستخدام Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    alert('تأكد من اختيار الاسم الصحيح وكلمة المرور');
+      // البحث عن بيانات المعلق في Firestore باستخدام uid
+      const q = query(collection(db, 'artists'), where('uid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const artistDoc = querySnapshot.docs[0];
+        const artistId = artistDoc.id;
+        router.push(`/pages/Dashboardforvoiceover?artistId=${artistId}`);
+      } else {
+        setError('لم يتم العثور على بيانات المعلق.');
+      }
+    } catch (err: any) {
+      console.error('Error during login:', err);
+      if (err.code === 'auth/user-not-found') {
+        setError('البريد الإلكتروني غير مسجل.');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('كلمة المرور غير صحيحة.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('البريد الإلكتروني غير صحيح.');
+      } else {
+        setError('فشل تسجيل الدخول: ' + err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (password === 'admin123') {
+        router.push('/pages/AdminDashboard');
+      } else {
+        setError('كلمة مرور المديرة غير صحيحة.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 text-right" dir="rtl">
-      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-stone-100">
-        <div className="flex flex-col items-center mb-8">
-          <div className="p-5 rounded-[1.5rem] mb-4" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
-            <Mic2 size={40} />
-          </div>
-          <h1 className="text-3xl font-black text-stone-900 italic">Voxdub <span style={{ color: themeColor }}>Portal</span></h1>
-          <p className="text-stone-400 font-bold mt-2">اختر حسابك للولوج</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">الحساب</label>
-            <select
-              value={selectedArtistId}
-              onChange={(e) => setSelectedArtistId(e.target.value)}
-              className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none font-bold text-stone-600 bg-stone-50 transition-all"
-              style={{ '--tw-ring-color': themeColor } as any}
-              disabled={loading}
-            >
-              <option value="">{loading ? 'جاري التحميل...' : 'دخول كمدير (المديرة لميس)'}</option>
-              {artistsList.map((artist) => (
-                <option key={artist.id} value={artist.id}>
-                  {artist.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-black text-stone-700 mb-2 mr-1">كلمة المرور</label>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center text-red-800 mb-6">تسجيل الدخول</h2>
+        
+        <form onSubmit={handleLogin}>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">البريد الإلكتروني:</label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-14 px-4 rounded-2xl border border-stone-200 focus:ring-2 outline-none font-bold text-left bg-stone-50"
-              style={{ '--tw-ring-color': themeColor } as any}
-              placeholder="••••••••"
-              required
+              type="email"
+              id="email"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="أدخل بريدك الإلكتروني"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-
-          <button
-            type="submit"
-            className="w-full text-white h-14 rounded-2xl font-black flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg active:scale-95"
-            style={{ backgroundColor: themeColor }}
-          >
-            <LogIn size={20} />
-            دخول
-          </button>
+          <div className="mb-6">
+            <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">كلمة المرور:</label>
+            <input
+              type="password"
+              id="password"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="أدخل كلمة المرور"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+            >
+              {loading ? 'جاري...' : 'تسجيل الدخول'}
+            </button>
+          </div>
         </form>
+
+        <div className="border-t border-gray-300 my-6"></div>
+
+        <form onSubmit={handleAdminLogin}>
+          <div className="mb-4">
+            <label htmlFor="admin-password" className="block text-gray-700 text-sm font-bold mb-2">دخول كمديرة (المديرة لميس):</label>
+            <input
+              type="password"
+              id="admin-password"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="أدخل كلمة مرور المديرة"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+            >
+              {loading ? 'جاري...' : 'دخول المديرة'}
+            </button>
+          </div>
+        </form>
+
+        <p className="text-center text-gray-600 text-sm mt-6">
+          لا تملك حساباً؟{' '}
+          <a href="/pages/Register" className="text-red-800 hover:text-red-700 font-bold">
+            سجل الآن
+          </a>
+        </p>
       </div>
     </div>
   );
-}
+};
+
+export default Login;
