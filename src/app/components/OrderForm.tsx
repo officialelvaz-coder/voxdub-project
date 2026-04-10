@@ -69,15 +69,9 @@ export function OrderForm() {
       }
 
       await addDoc(collection(db, "orders"), {
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        selectedPackage,
-        selectedVoiceActor,
-        workType,
-        description,
-        fileAttachmentURL: fileDownloadURL,
+        firstName, lastName, email, phoneNumber,
+        selectedPackage, selectedVoiceActor, workType,
+        description, fileAttachmentURL: fileDownloadURL,
         createdAt: serverTimestamp()
       });
       setIsSubmitted(true);
@@ -119,9 +113,7 @@ export function OrderForm() {
                   : 'border-stone-200 bg-white hover:border-stone-300'
                 }`}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-lg text-stone-800">{pkg.name}</h3>
-                </div>
+                <h3 className="font-bold text-lg text-stone-800 mb-2">{pkg.name}</h3>
                 <p className="text-2xl font-black mb-2">{pkg.price} <span className="text-sm font-normal text-stone-500">د.ج</span></p>
                 <p className="text-xs text-stone-500 mb-4">{pkg.description}</p>
                 <ul className="space-y-2">
@@ -139,33 +131,15 @@ export function OrderForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-stone-700 mb-2">الاسم الأول *</label>
-                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" placeholder="محمد" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-stone-700 mb-2">اللقب *</label>
-                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" placeholder="أحمد" />
-                  </div>
+                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="الاسم الأول *" />
+                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="اللقب *" />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">البريد الإلكتروني *</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" placeholder="example@mail.com" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">رقم الهاتف *</label>
-                  <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" placeholder="05XXXXXXXX" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">نوع العمل *</label>
-                  <select value={workType} onChange={(e) => setWorkType(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all">
-                    <option value="">اختر نوع العمل</option>
-                    {workTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="البريد الإلكتروني *" />
+                <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" placeholder="رقم الهاتف *" />
+                <select value={workType} onChange={(e) => setWorkType(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none">
+                  <option value="">اختر نوع العمل *</option>
+                  {workTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
               </div>
 
               <div className="space-y-6">
@@ -173,42 +147,20 @@ export function OrderForm() {
                   <label className="block text-sm font-bold text-stone-700 mb-2">اختر المعلق الصوتي *</label>
                   <div className="grid grid-cols-2 gap-2">
                     {voiceActors.map(actor => (
-                      <button 
-                        key={actor} 
-                        type="button" 
-                        onClick={() => setSelectedVoiceActor(actor)} 
-                        className={`p-2 text-[11px] font-bold border rounded-xl transition-all ${selectedVoiceActor === actor ? 'bg-stone-900 text-white border-stone-900' : 'bg-stone-50 text-stone-600 border-stone-200 hover:border-stone-400'}`}
-                      >
-                        {actor}
-                      </button>
+                      <button key={actor} type="button" onClick={() => setSelectedVoiceActor(actor)} className={`p-2 text-[11px] font-bold border rounded-xl transition-all ${selectedVoiceActor === actor ? 'bg-stone-900 text-white border-stone-900' : 'bg-stone-50 text-stone-600 border-stone-200'}`}>{actor}</button>
                     ))}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">تفاصيل إضافية *</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all" rows={3} placeholder="اشرح طلبك بالتفصيل..." />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-stone-700 mb-2">إرفاق ملف (اختياري)</label>
-                  <div className="relative">
-                    <input type="file" onChange={(e) => setAttachedFile(e.target.files ? e.target.files[0] : null)} className="w-full text-xs text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer" />
-                  </div>
-                </div>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl outline-none" rows={3} placeholder="تفاصيل إضافية *" />
+                <input type="file" onChange={(e) => setAttachedFile(e.target.files ? e.target.files[0] : null)} className="w-full text-xs text-stone-500 cursor-pointer" />
               </div>
             </div>
 
             <div className="mt-12">
-              <button 
-                type="submit" 
-                disabled={loading} 
-                className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xl shadow-xl shadow-red-600/20 hover:bg-stone-900 transition-all duration-300 disabled:bg-stone-300 disabled:shadow-none"
-              >
-                {loading ? "جاري معالجة طلبك..." : "تأكيد وإرسال الطلب"}
+              <button type="submit" disabled={loading} className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xl shadow-xl hover:bg-stone-900 transition-all duration-300 disabled:bg-stone-300">
+                {loading ? "جاري الإرسال..." : "تأكيد وإرسال الطلب"}
               </button>
               {error && <p className="text-red-600 text-center font-bold mt-4">{error}</p>}
-              <p className="text-center text-stone-400 text-xs mt-4">بالضغط على إرسال، أنت توافق على شروط الخدمة الخاصة بـ VoxDub</p>
             </div>
           </div>
         </form>
