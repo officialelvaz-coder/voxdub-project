@@ -2,15 +2,15 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDyOoLEsDzhQdcqfDgntBejE-xTnLULbTg",
-  authDomain: "voxdub-a541c.firebaseapp.com",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "voxdub-a541c.firebaseapp.com",
   projectId: "voxdub-a541c",
-  storageBucket: "voxdub-a541c.firebasestorage.app",
-  messagingSenderId: "1040506253784",
-  appId: "1:1040506253784:web:42086b27296e0327ae42ad",
-  measurementId: "G-R2EBWHN9S2"
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "voxdub-a541c.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// هذا السطر يمنع الخطأ المتكرر في Vercel
+// هذا السطر يمنع الخطأ المتكرر في Vercel عند الـ Hot Reload
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
