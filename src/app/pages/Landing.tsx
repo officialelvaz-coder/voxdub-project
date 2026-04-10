@@ -154,7 +154,7 @@ export function Landing() {
             <span className="text-3xl font-black italic text-stone-900">Vox<span className="text-vox-primary">Dub</span></span>
           </div>
           <div className="hidden md:flex bg-stone-100 p-1.5 rounded-full border border-stone-200">
-            <button onClick={() => userRole === 'admin' ? navigate('/dashboard') : setShowLoginModal(true)} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة لميس</button>
+            <button onClick={() => userRole === 'admin' ? navigate('/dashboard') : setShowLoginModal(true)} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'admin' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة الإدارة</button>
             <button onClick={() => { setUserRole('artist'); navigate('/login'); }} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'artist' ? 'bg-white shadow-md text-vox-primary' : 'text-stone-500'}`}>واجهة المعلق</button>
             <button onClick={() => setUserRole('visitor')} className={`px-6 py-2 rounded-full text-xs font-black transition-all ${userRole === 'visitor' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500'}`}>زائر</button>
           </div>
@@ -168,6 +168,16 @@ export function Landing() {
         <div className="flex justify-center gap-6">
           <a href="#artists" className="bg-stone-900 text-white px-14 py-6 rounded-[2rem] font-black text-2xl shadow-2xl hover:bg-vox-primary transition-all">اكتشف المبدعين</a>
           <a href="#pricing" className="bg-white text-stone-900 border-4 border-stone-100 px-14 py-6 rounded-[2rem] font-black text-2xl hover:border-vox-primary transition-all">باقاتنا</a>
+        </div>
+      </section>
+
+      {/* 🏢 النبذة المختصرة عن المؤسسة */}
+      <section id="about" className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-4xl font-black mb-8 underline decoration-vox-primary decoration-8 underline-offset-8">من نحن</h2>
+          <p className="text-2xl text-stone-600 font-bold leading-relaxed">
+            نحن مؤسسة رائدة متخصصة في تقديم خدمات التعليق الصوتي الاحترافي. نجمع لك نخبة من الأصوات لنلبي كافة احتياجاتك الإبداعية، ونسعى دائماً لتقديم جودة استوديو عالمية تليق بمشاريعكم وتجعلها لا تُنسى.
+          </p>
         </div>
       </section>
 
@@ -203,6 +213,61 @@ export function Landing() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 💎 باقاتنا */}
+      <section id="pricing" className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h2 className="text-5xl font-black mb-24 underline decoration-vox-primary decoration-8 underline-offset-8">باقاتنا</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
+            
+            {/* الباقة الأساسية */}
+            <div className="border-4 border-stone-100 rounded-[3rem] p-10 hover:border-vox-primary transition-all">
+              <h3 className="text-3xl font-black mb-4">الباقة الأساسية</h3>
+              <p className="text-stone-500 mb-8 font-bold">مثالية للمشاريع القصيرة والإعلانات السريعة.</p>
+              <ul className="space-y-4 font-bold text-stone-700">
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> تسجيل صوتي حتى دقيقة</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> تسليم خلال 48 ساعة</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> جودة صوت عالية (WAV/MP3)</li>
+              </ul>
+            </div>
+
+            {/* الباقة الاحترافية (المميزة) */}
+            <div className="bg-stone-900 text-white rounded-[3rem] p-10 transform md:-translate-y-4 shadow-2xl border-4 border-vox-primary relative">
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-vox-primary text-white px-6 py-2 rounded-full font-black text-sm">الأكثر طلباً</div>
+              <h3 className="text-3xl font-black mb-4 text-vox-primary">الباقة الاحترافية</h3>
+              <p className="text-stone-300 mb-8 font-bold">الخيار المفضل للشركات وصناع المحتوى.</p>
+              <ul className="space-y-4 font-bold text-stone-300">
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> تسجيل صوتي حتى 3 دقائق</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> تسليم خلال 24 ساعة</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> هندسة صوتية ومكساج احترافي</li>
+              </ul>
+            </div>
+
+            {/* الباقة المتقدمة */}
+            <div className="border-4 border-stone-100 rounded-[3rem] p-10 hover:border-vox-primary transition-all">
+              <h3 className="text-3xl font-black mb-4">الباقة المتقدمة</h3>
+              <p className="text-stone-500 mb-8 font-bold">للمشاريع الكبيرة والوثائقيات والكتب الصوتية.</p>
+              <ul className="space-y-4 font-bold text-stone-700">
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> تسجيل صوتي مفتوح (حسب الاتفاق)</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> أولوية في التسليم السريع</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-vox-primary" /> مراجعات غير محدودة للأداء</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 📝 استمارة العميل */}
+      <section id="order" className="py-32 bg-stone-50">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-5xl font-black mb-16 text-center underline decoration-vox-primary decoration-8 underline-offset-8">اطلب خدمتك الآن</h2>
+          <div className="bg-white p-8 md:p-12 rounded-[4rem] shadow-2xl border-4 border-stone-100">
+            {/* استدعاء مكون الاستمارة */}
+            <OrderForm />
           </div>
         </div>
       </section>
