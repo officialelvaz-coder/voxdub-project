@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -5,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
-import { 
-  Search, UserPlus, Trash2, Play, Pause, Upload, 
-  CheckCircle2, Mic, X, CloudUpload 
+import {
+  Search, UserPlus, Trash2, Play, Pause, Upload,
+  CheckCircle2, Mic, X, CloudUpload
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { db, app } from '../firebase'; // تأكد من المسار الصحيح لملف firebase
+import { db, app } from '../components/firebase'; // تم تصحيح المسار هنا
 import { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -25,13 +26,13 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
   const processFile = async (file: File) => {
     if (!file.type.startsWith('audio/')) { toast.error('يُقبل فقط ملفات صوتية'); return; }
     setIsLoading(true);
-    
+
     try {
       const storage = getStorage(app);
       const storageRef = ref(storage, `temp_samples/${Date.now()}_${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
-      
+
       setPreviewFile({ name: file.name, url: downloadURL });
       toast.success('تم تجهيز الملف بنجاح');
     } catch (error) {
@@ -54,7 +55,7 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
            </div>
         </div>
         <div className="p-8 space-y-6">
-          <div 
+          <div
             onClick={() => inputRef.current?.click()}
             className="border-2 border-dashed rounded-[1.8rem] p-10 text-center cursor-pointer transition-all"
             style={{ borderColor: previewFile ? '#22c55e' : '#333', background: previewFile ? '#0d2010' : '#1a1a1a' }}
@@ -72,7 +73,7 @@ function AudioUploadModal({ isOpen, onClose, onUpload, themeColor }: any) {
 export function Artists() {
   const navigate = useNavigate();
   const themeColor = (typeof window !== 'undefined' ? localStorage.getItem('voxdub_theme') : '#e11d48') || '#e11d48';
-  
+
   const userRole = typeof window !== 'undefined' ? localStorage.getItem('voxdub_user_role') : null;
   const isAdmin = userRole === 'admin';
 
@@ -80,7 +81,7 @@ export function Artists() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [newArtist, setNewArtist] = useState({ name: '', role: '', gender: 'ذكر', experienceYears: '', language: 'عربية فصحى', bio: '', image: '', audio: '', audioName: '' });
-  
+
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -102,7 +103,7 @@ export function Artists() {
 
   const handleAddArtist = async () => {
     if (!newArtist.name.trim()) return toast.error('الاسم مطلوب');
-    
+
     try {
       const artistToAdd = {
         name: newArtist.name,
@@ -149,8 +150,8 @@ export function Artists() {
     }
   };
 
-  const filteredArtists = artists.filter((a: any) => 
-    a.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredArtists = artists.filter((a: any) =>
+    a.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     a.role?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -167,7 +168,7 @@ export function Artists() {
 
       <div className="flex justify-between items-center mb-10">
         <h1 className="text-4xl font-black italic">المكتبة <span style={{ color: themeColor }}>الصوتية</span></h1>
-        
+
         {isAdmin && (
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -215,9 +216,9 @@ export function Artists() {
                 {(!artist.samples || artist.samples.length === 0) && <span className="text-[10px] text-red-400 font-bold italic">العينة غير متاحة</span>}
               </div>
             </div>
-            
+
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => toggleAudio(artist.id, artist.samples?.[0]?.audio || artist.audio)}
                 className={`flex-1 h-12 rounded-2xl font-black text-white flex items-center justify-center gap-2 transition-all ${(!artist.samples?.[0]?.audio && !artist.audio) ? 'opacity-30 cursor-not-allowed' : ''}`}
                 style={{ backgroundColor: playingId === artist.id ? '#1c1917' : themeColor }}
@@ -225,7 +226,7 @@ export function Artists() {
                 {playingId === artist.id ? <Pause size={16} /> : <Play size={16} />}
                 {playingId === artist.id ? 'إيقاف' : 'استمع'}
               </button>
-              
+
               {isAdmin && (
                 <button onClick={() => handleDeleteArtist(artist.id)} className="w-12 h-12 rounded-2xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all">
                   <Trash2 size={18} />
