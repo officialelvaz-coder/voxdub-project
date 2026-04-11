@@ -12,6 +12,11 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+interface AudioSample {
+  name: string;
+  url: string;
+}
+
 interface Artist {
   id: string;
   name: string;
@@ -22,7 +27,7 @@ interface Artist {
   language?: string;
   image?: string;
   profilePicture?: string;
-  audioSamples?: string[];
+  audioSamples?: AudioSample[] | string[];
   audio?: string;
 }
 
@@ -32,7 +37,6 @@ export default function Home() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // Order Form State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -54,6 +58,17 @@ export default function Home() {
     { name: 'باقة كاملة المحتوى', price: '13000', popular: false, desc: 'حل شامل ومتكامل', features: ['كل مميزات الباقتين السابقتين', 'كتابة النص من الصفر', 'بحث وتطوير المحتوى', 'كتابة إبداعية'] },
   ];
 
+  // دالة للحصول على URL الصوت بغض النظر عن طريقة التخزين
+  const getAudioUrl = (artist: Artist): string | null => {
+    if (!artist.audioSamples || artist.audioSamples.length === 0) {
+      return artist.audio || null;
+    }
+    const first = artist.audioSamples[0];
+    if (typeof first === 'string') return first;
+    if (typeof first === 'object' && 'url' in first) return first.url;
+    return artist.audio || null;
+  };
+
   useEffect(() => {
     const fetchArtists = async () => {
       try {
@@ -70,7 +85,7 @@ export default function Home() {
   }, []);
 
   const toggleAudio = (artist: Artist) => {
-    const audioUrl = artist.audioSamples?.[0] || artist.audio || null;
+    const audioUrl = getAudioUrl(artist);
     if (!audioUrl) return;
     if (playingId === artist.id) {
       currentAudio?.pause();
@@ -207,12 +222,11 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {artists.map((artist) => {
-                const hasAudio = !!(artist.audioSamples?.[0] || artist.audio);
+                const audioUrl = getAudioUrl(artist);
+                const hasAudio = !!audioUrl;
                 const isPlaying = playingId === artist.id;
                 return (
                   <div key={artist.id} className="bg-gray-900 rounded-3xl p-8 text-white hover:-translate-y-2 transition-transform duration-300">
-                    
-                    {/* Header: اسم المعلق قابل للضغط لتشغيل الصوت */}
                     <div className="flex justify-between items-start mb-6">
                       <Award size={22} className="text-red-400 opacity-60 flex-shrink-0" />
                       <div className="text-right flex-1 mr-3">
@@ -250,7 +264,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* صورة + معلومات */}
                     <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl mb-6 border border-white/10">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-700 flex-shrink-0">
                         {(artist.profilePicture || artist.image) ? (
@@ -267,9 +280,8 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* زر الملف الشخصي */}
                     <Link
-                      href={`/dashboard/artists/${artist.id}`}
+                      href={`/artists/${artist.id}`}
                       className="w-full py-3 rounded-2xl font-bold text-center block border border-white/20 text-gray-300 hover:bg-white hover:text-gray-900 transition-all text-sm"
                     >
                       الملف الشخصي
@@ -362,7 +374,6 @@ export default function Home() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-10">
-              {/* اختيار الباقة */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {packages.map((pkg) => (
                   <div
@@ -384,7 +395,6 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* بيانات الطلب */}
               <div className="bg-gray-50 p-8 md:p-12 rounded-3xl border border-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-5">
