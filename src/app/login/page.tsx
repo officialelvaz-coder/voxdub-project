@@ -41,7 +41,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error(err);
-      setError('حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة لاحقاً.');
+      setError('حدث خطأ أثناء تسجيل الدخول.');
     }
     setLoading(false);
   };
@@ -51,7 +51,6 @@ const Login = () => {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap'); * { font-family: 'Cairo', sans-serif; }`}</style>
 
       <div className="max-w-md w-full">
-        {/* Logo */}
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2 justify-center">
             <div className="bg-red-600 p-2 rounded-xl">
@@ -96,7 +95,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-gray-900 disabled:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-gray-900 disabled:bg-gray-200 transition-all flex items-center justify-center gap-2"
             >
               <LogIn size={20} />
               {loading ? 'جاري التحقق...' : 'دخول'}
