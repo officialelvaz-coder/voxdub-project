@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+// قمنا باستبدال getFirestore بـ initializeFirestore هنا
+import { initializeFirestore } from 'firebase/firestore'; 
 import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
@@ -13,7 +14,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// التعديل الجوهري لتخطي مشكلة الاتصال في الشبكة (QUIC Error)
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true
+});
+
 export const storage = getStorage(app);
 export const auth = getAuth(app);
 export { app };
