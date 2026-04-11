@@ -3,12 +3,11 @@ import { Play, Pause, Star, Award, Loader2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-// استيراد قاعدة البيانات من الملف الذي أنشأناه
-import { db } from '../firebase'; 
+import { db } from './firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 interface VoiceArtist {
-  id: string; // تم تغييره إلى string ليتوافق مع معرفات Firebase
+  id: string;
   name: string;
   gender: 'ذكر' | 'أنثى';
   style: string;
@@ -17,8 +16,8 @@ interface VoiceArtist {
   specialties: string[];
   experience: string;
   language: string;
-  image?: string; // أضفنا حقل الصورة
-  audio?: string; // أضفنا حقل الصوت
+  image?: string;
+  audio?: string;
 }
 
 export function VoiceArtists() {
@@ -27,7 +26,6 @@ export function VoiceArtists() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  // 1. دالة جلب البيانات من Firebase
   useEffect(() => {
     const fetchArtists = async () => {
       try {
@@ -49,7 +47,6 @@ export function VoiceArtists() {
     fetchArtists();
   }, []);
 
-  // 2. دالة تشغيل الصوت الحقيقية
   const togglePlay = (artist: VoiceArtist) => {
     if (playingId === artist.id) {
       currentAudio?.pause();
@@ -106,7 +103,6 @@ export function VoiceArtists() {
                 </div>
               </div>
 
-              {/* صورة المعلق إذا وجدت */}
               {artist.image && (
                 <div className="w-full h-48 mb-4 rounded-2xl overflow-hidden border-2 border-gray-100">
                   <img src={artist.image} alt={artist.name} className="w-full h-full object-cover" />
