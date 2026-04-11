@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../components/firebase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mic2, LogIn } from 'lucide-react';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ const Login = () => {
     setLoading(true);
 
     // تسجيل دخول المدير
-    if (username === 'admin' && password === 'admin123') {
+    if (email === 'admin@voxdub.com' && password === 'admin123') {
       localStorage.setItem('userRole', 'admin');
       localStorage.setItem('userId', 'admin');
       router.push('/dashboard');
@@ -28,17 +28,38 @@ const Login = () => {
     }
 
     try {
-      const querySnapshot = await getDocs(collection(db, 'artists'));
-      const artists = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const user = artists.find((a: any) => a.name === username && a.password === password);
+      // البحث في المعلقين
+      const artistsSnapshot = await getDocs(collection(db, 'artists'));
+      const artists = artistsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      const artist = artists.find(a => a.email === email && a.password === password);
 
-      if (user) {
+      if (artist) {
+        if (!artist.approved) {
+          setError('حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار.');
+          setLoading(false);
+          return;
+        }
         localStorage.setItem('userRole', 'artist');
-        localStorage.setItem('userId', user.id);
+        localStorage.setItem('userId', artist.id);
         router.push('/dashboard');
-      } else {
-        setError('اسم المستخدم أو كلمة المرور غير صحيحة');
+        return;
       }
+
+      // البحث في أصحاب العمل
+      const clientsSnapshot = await getDocs(collection(db, 'clients'));
+      const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      const client = clients.find(c => c.email === email && c.password === password);
+
+      if (client) {
+        localStorage.setItem('userRole', 'client');
+        localStorage.setItem('userId', client.id);
+        localStorage.setItem('userName', client.name);
+        router.push('/client-dashboard');
+        return;
+      }
+
+      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+
     } catch (err) {
       console.error(err);
       setError('حدث خطأ أثناء تسجيل الدخول.');
@@ -64,13 +85,13 @@ const Login = () => {
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-black text-gray-700 mb-2">اسم المستخدم</label>
+              <label className="block text-sm font-black text-gray-700 mb-2">البريد الإلكتروني</label>
               <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                placeholder="أدخل اسمك المسجل"
+                placeholder="أدخل بريدك الإلكتروني"
                 required
               />
             </div>
@@ -105,7 +126,7 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-500 font-bold text-sm">ليس لديك حساب؟</p>
             <Link href="/register" className="text-red-600 font-black hover:underline mt-1 inline-block">
-              سجل كمعلق صوتي الآن
+              انضم إلينا
             </Link>
           </div>
         </div>
