@@ -2,148 +2,313 @@
 
 import React, { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../components/firebase'; // المسار الصحيح
-import { useRouter } from 'next/navigation'; // استخدام router الخاص بـ Next.js
+import { db } from '../components/firebase';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Mic2, Mic, Briefcase, ArrowRight } from 'lucide-react';
 
 const Register = () => {
+  const [step, setStep] = useState<'choose' | 'form'>('choose');
+  const [userType, setUserType] = useState<'artist' | 'client' | null>(null);
+
+  // حقول المعلق
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [gender, setGender] = useState('ذكر');
   const [voiceType, setVoiceType] = useState('رخيم');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // حقول صاحب العمل
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientPassword, setClientPassword] = useState('');
+  const [clientConfirmPassword, setClientConfirmPassword] = useState('');
+  const [company, setCompany] = useState('');
+  const [phone, setPhone] = useState('');
+
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    if (!/[a-zA-Z]/.test(pwd)) return 'كلمة المرور يجب أن تحتوي على حروف لاتينية';
+    if (!/[0-9]/.test(pwd)) return 'كلمة المرور يجب أن تحتوي على أرقام';
+    return null;
+  };
+
+  const handleChoose = (type: 'artist' | 'client') => {
+    setUserType(type);
+    setStep('form');
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (password !== confirmPassword) {
-      setError('كلمات المرور غير متطابقة');
-      return;
+    if (userType === 'artist') {
+      const pwdError = validatePassword(password);
+      if (pwdError) { setError(pwdError); setLoading(false); return; }
+      if (password !== confirmPassword) { setError('كلمات المرور غير متطابقة'); setLoading(false); return; }
+
+      try {
+        await addDoc(collection(db, 'artists'), {
+          name,
+          email,
+          gender,
+          voiceType,
+          password,
+          role: 'artist',
+          approved: false,
+          profilePicture: '',
+          audioSamples: [],
+          createdAt: new Date().toISOString()
+        });
+        setSuccess(true);
+        setTimeout(() => router.push('/login'), 2000);
+      } catch (err) {
+        setError('حدث خطأ أثناء التسجيل.');
+      }
+
+    } else {
+      const pwdError = validatePassword(clientPassword);
+      if (pwdError) { setError(pwdError); setLoading(false); return; }
+      if (clientPassword !== clientConfirmPassword) { setError('كلمات المرور غير متطابقة'); setLoading(false); return; }
+
+      try {
+        await addDoc(collection(db, 'clients'), {
+          name: clientName,
+          email: clientEmail,
+          company,
+          phone,
+          password: clientPassword,
+          role: 'client',
+          createdAt: new Date().toISOString()
+        });
+        setSuccess(true);
+        setTimeout(() => router.push('/login'), 2000);
+      } catch (err) {
+        setError('حدث خطأ أثناء التسجيل.');
+      }
     }
-
-    try {
-      // إضافة المعلق الجديد إلى Firestore
-      await addDoc(collection(db, 'artists'), {
-        name,
-        gender,
-        voiceType,
-        password,
-        profilePicture: '', // سيتم رفعها لاحقاً من لوحة التحكم
-        audioSamples: [],   // سيتم رفعها لاحقاً من لوحة التحكم
-        createdAt: new Date().toISOString()
-      });
-
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/login'); // التوجه لصفحة تسجيل الدخول بعد النجاح
-      }, 2000);
-    } catch (err) {
-      console.error("Error during registration:", err);
-      setError('حدث خطأ أثناء التسجيل. يرجى المحاولة لاحقاً.');
-    }
+    setLoading(false);
   };
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4" dir="rtl">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-green-500 text-5xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">تم التسجيل بنجاح!</h2>
-          <p className="text-gray-600">جاري تحويلك لصفحة تسجيل الدخول...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
+        <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100 max-w-md w-full">
+          <div className="text-5xl mb-4">✅</div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">
+            {userType === 'artist' ? 'طلبك قيد المراجعة!' : 'تم التسجيل بنجاح!'}
+          </h2>
+          <p className="text-gray-500 font-bold">
+            {userType === 'artist'
+              ? 'سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل حسابك.'
+              : 'جاري تحويلك لصفحة تسجيل الدخول...'}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4" dir="rtl">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">تسجيل معلق جديد - VoxDub</h2>
-        
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="أدخل اسمك الثلاثي"
-              required
-            />
-          </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap'); * { font-family: 'Cairo', sans-serif; }`}</style>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الجنس</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              >
-                <option value="ذكر">ذكر</option>
-                <option value="أنثى">أنثى</option>
-              </select>
+      <div className="max-w-lg w-full">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 justify-center">
+            <div className="bg-red-600 p-2 rounded-xl">
+              <Mic2 className="text-white w-6 h-6" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">نوع الصوت</label>
-              <select
-                value={voiceType}
-                onChange={(e) => setVoiceType(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              >
-                <option value="رخيم">رخيم</option>
-                <option value="ناعم">ناعم</option>
-                <option value="إعلاني">إعلاني</option>
-                <option value="وثائقي">وثائقي</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="أدخل كلمة مرور قوية"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              placeholder="أعد إدخال كلمة المرور"
-              required
-            />
-          </div>
-
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md mt-4"
-          >
-            إنشاء حسابي الآن
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">لديك حساب بالفعل؟</p>
-          <Link href="/login" className="text-blue-600 font-bold hover:underline mt-2 inline-block">
-            تسجيل الدخول
+            <span className="text-3xl font-black">Vox<span className="text-red-600">Dub</span></span>
           </Link>
         </div>
+
+        {/* اختيار النوع */}
+        {step === 'choose' && (
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+            <h2 className="text-2xl font-black text-gray-900 text-center mb-2">انضم إلى VoxDub</h2>
+            <p className="text-gray-500 font-bold text-center mb-8">اختر نوع حسابك</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleChoose('artist')}
+                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center"
+              >
+                <div className="w-16 h-16 bg-gray-100 group-hover:bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
+                  <Mic size={32} className="text-gray-400 group-hover:text-red-600 transition-colors" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900 mb-2">معلق صوتي</h3>
+                <p className="text-gray-400 font-bold text-sm">أنا معلق صوتي محترف وأريد عرض خدماتي</p>
+              </button>
+
+              <button
+                onClick={() => handleChoose('client')}
+                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center"
+              >
+                <div className="w-16 h-16 bg-gray-100 group-hover:bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
+                  <Briefcase size={32} className="text-gray-400 group-hover:text-red-600 transition-colors" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900 mb-2">صاحب عمل</h3>
+                <p className="text-gray-400 font-bold text-sm">أريد الاستعانة بمعلق صوتي لمشروعي</p>
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-gray-500 font-bold text-sm">لديك حساب بالفعل؟</p>
+              <Link href="/login" className="text-red-600 font-black hover:underline">تسجيل الدخول</Link>
+            </div>
+          </div>
+        )}
+
+        {/* نموذج التسجيل */}
+        {step === 'form' && (
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+            <button
+              onClick={() => { setStep('choose'); setError(''); }}
+              className="flex items-center gap-2 text-gray-500 font-bold hover:text-red-600 transition mb-6"
+            >
+              <ArrowRight size={18} /> رجوع
+            </button>
+
+            <h2 className="text-2xl font-black text-gray-900 mb-1">
+              {userType === 'artist' ? 'تسجيل معلق صوتي' : 'تسجيل صاحب عمل'}
+            </h2>
+            <p className="text-gray-400 font-bold text-sm mb-6">
+              {userType === 'artist'
+                ? 'سيتم مراجعة طلبك من الإدارة قبل النشر'
+                : 'أنشئ حسابك وابدأ طلب خدماتك'}
+            </p>
+
+            <form onSubmit={handleRegister} className="space-y-4">
+              {userType === 'artist' ? (
+                <>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="الاسم الكامل *"
+                  />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="البريد الإلكتروني *"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <select
+                      value={gender}
+                      onChange={e => setGender(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm"
+                    >
+                      <option value="ذكر">ذكر</option>
+                      <option value="أنثى">أنثى</option>
+                    </select>
+                    <select
+                      value={voiceType}
+                      onChange={e => setVoiceType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm"
+                    >
+                      <option value="رخيم">رخيم</option>
+                      <option value="ناعم">ناعم</option>
+                      <option value="إعلاني">إعلاني</option>
+                      <option value="وثائقي">وثائقي</option>
+                    </select>
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
+                  />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="تأكيد كلمة المرور *"
+                  />
+                </>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={e => setClientName(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="الاسم الكامل *"
+                  />
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={e => setClientEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="البريد الإلكتروني *"
+                  />
+                  <input
+                    type="text"
+                    value={company}
+                    onChange={e => setCompany(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="اسم الشركة أو المؤسسة (اختياري)"
+                  />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="رقم الهاتف (اختياري)"
+                  />
+                  <input
+                    type="password"
+                    value={clientPassword}
+                    onChange={e => setClientPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
+                  />
+                  <input
+                    type="password"
+                    value={clientConfirmPassword}
+                    onChange={e => setClientConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="تأكيد كلمة المرور *"
+                  />
+                </>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-center py-3 px-4 rounded-xl">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-gray-900 disabled:bg-gray-200 transition-all"
+              >
+                {loading ? 'جاري التسجيل...' : 'إنشاء الحساب'}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
