@@ -27,14 +27,20 @@ const Artists: React.FC = () => {
     const fetchArtists = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'artists'));
-        const artistsData: Artist[] = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          name: doc.data().name,
-          gender: doc.data().gender,
-          voiceType: doc.data().voiceType,
-          profilePicture: doc.data().profilePicture,
-          audioSamples: doc.data().audioSamples || [],
-        }));
+        
+        // التعديل هنا: إضافة حماية للبيانات الناقصة
+        const artistsData: Artist[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data?.name || 'مُعلق غير معروف', // إذا لم يجد اسم يضع هذا النص
+            gender: data?.gender || 'غير محدد',
+            voiceType: data?.voiceType || 'غير محدد',
+            profilePicture: data?.profilePicture || '',
+            audioSamples: data?.audioSamples || [],
+          };
+        });
+
         setArtists(artistsData);
         setFilteredArtists(artistsData);
       } catch (err) {
@@ -118,7 +124,8 @@ const Artists: React.FC = () => {
                     <img src={artist.profilePicture} alt={artist.name} className="w-24 h-24 object-cover rounded-full mx-auto mb-4 border-4 border-red-100" />
                   ) : (
                     <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gray-100 flex items-center justify-center text-3xl font-black text-gray-300">
-                      {artist.name[0]}
+                      {/* التعديل هنا: حماية إضافية لتجنب الانهيار إذا كان الاسم مفقوداً */}
+                      {artist.name ? artist.name.charAt(0) : '?'}
                     </div>
                   )}
                   <h3 className="text-xl font-black text-gray-900 mb-2">{artist.name}</h3>
