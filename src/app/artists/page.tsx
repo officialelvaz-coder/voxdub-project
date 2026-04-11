@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../components/firebase';
+import Link from 'next/link';
+import { Mic2, ArrowRight } from 'lucide-react';
 
 interface Artist {
   id: string;
@@ -10,7 +12,7 @@ interface Artist {
   gender: string;
   voiceType: string;
   profilePicture?: string;
-  audioSamples?: string[];
+  audioSamples?: any[];
 }
 
 const Artists: React.FC = () => {
@@ -41,59 +43,59 @@ const Artists: React.FC = () => {
       }
       setLoading(false);
     };
-
     fetchArtists();
   }, []);
 
   useEffect(() => {
     let currentArtists = artists;
-
-    if (filterGender !== 'all') {
-      currentArtists = currentArtists.filter(artist => artist.gender === filterGender);
-    }
-
-    if (filterVoiceType !== 'all') {
-      currentArtists = currentArtists.filter(artist => artist.voiceType === filterVoiceType);
-    }
-
+    if (filterGender !== 'all') currentArtists = currentArtists.filter(a => a.gender === filterGender);
+    if (filterVoiceType !== 'all') currentArtists = currentArtists.filter(a => a.voiceType === filterVoiceType);
     setFilteredArtists(currentArtists);
   }, [filterGender, filterVoiceType, artists]);
 
-  if (loading) {
-    return <div className="text-center py-10">جاري تحميل المعلقين...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-10 text-red-500">خطأ: {error}</div>;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-3xl font-bold text-red-800 mb-6 text-center">مكتبة المعلقين الصوتيين</h2>
+    <div className="min-h-screen bg-gray-50" dir="rtl">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap'); * { font-family: 'Cairo', sans-serif; }`}</style>
 
-        <div className="flex flex-col md:flex-row justify-center gap-4 mb-8">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 h-20 flex items-center">
+        <div className="max-w-6xl mx-auto px-6 w-full flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="bg-red-600 p-2 rounded-xl">
+              <Mic2 className="text-white w-5 h-5" />
+            </div>
+            <span className="text-2xl font-black">Vox<span className="text-red-600">Dub</span></span>
+          </Link>
+          <Link href="/" className="flex items-center gap-2 text-gray-600 font-bold hover:text-red-600 transition">
+            <ArrowRight size={18} />
+            العودة للرئيسية
+          </Link>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <h2 className="text-4xl font-black text-gray-900 mb-8 text-center">مكتبة المعلقين الصوتيين</h2>
+
+        {/* فلاتر */}
+        <div className="flex flex-wrap justify-center gap-4 mb-10">
           <div className="flex items-center gap-2">
-            <label htmlFor="gender-filter" className="text-gray-700 font-semibold">الجنس:</label>
+            <label className="text-gray-700 font-black text-sm">الجنس:</label>
             <select
-              id="gender-filter"
-              className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="bg-white border border-gray-200 rounded-xl py-2 px-4 text-gray-700 font-bold text-sm outline-none"
               value={filterGender}
-              onChange={(e) => setFilterGender(e.target.value)}
+              onChange={e => setFilterGender(e.target.value)}
             >
               <option value="all">الكل</option>
               <option value="male">ذكر</option>
               <option value="female">أنثى</option>
             </select>
           </div>
-
           <div className="flex items-center gap-2">
-            <label htmlFor="voice-type-filter" className="text-gray-700 font-semibold">نوع الصوت:</label>
+            <label className="text-gray-700 font-black text-sm">نوع الصوت:</label>
             <select
-              id="voice-type-filter"
-              className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="bg-white border border-gray-200 rounded-xl py-2 px-4 text-gray-700 font-bold text-sm outline-none"
               value={filterVoiceType}
-              onChange={(e) => setFilterVoiceType(e.target.value)}
+              onChange={e => setFilterVoiceType(e.target.value)}
             >
               <option value="all">الكل</option>
               <option value="young">شاب/شابة</option>
@@ -103,41 +105,40 @@ const Artists: React.FC = () => {
           </div>
         </div>
 
-        {filteredArtists.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-20 text-gray-400 font-bold animate-pulse">جاري تحميل المعلقين...</div>
+        ) : error ? (
+          <div className="text-center py-20 text-red-500 font-bold">{error}</div>
+        ) : filteredArtists.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredArtists.map((artist) => (
-              <div key={artist.id} className="bg-gradient-to-br from-red-50 to-yellow-50 rounded-lg shadow-md p-6 text-center border border-red-200 hover:shadow-lg transition">
-                {artist.profilePicture && (
-                  <img
-                    src={artist.profilePicture}
-                    alt={artist.name}
-                    className="w-32 h-32 object-cover rounded-full mx-auto mb-4 border-4 border-red-800"
-                  />
-                )}
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{artist.name}</h3>
-                <p className="text-gray-600 text-sm mb-1">
-                  <span className="font-bold">الجنس:</span> {artist.gender === 'male' ? 'ذكر' : 'أنثى'}
-                </p>
-                <p className="text-gray-600 text-sm mb-4">
-                  <span className="font-bold">نوع الصوت:</span> {
-                    artist.voiceType === 'young' ? 'شاب/شابة' :
-                    artist.voiceType === 'adult' ? 'بالغ/بالغة' :
-                    'طفل/طفلة'
-                  }
-                </p>
-                {artist.audioSamples && artist.audioSamples.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-gray-700 font-semibold text-sm">العينات الصوتية:</p>
-                    {artist.audioSamples.map((sample, index) => (
-                      <audio key={index} controls src={sample} className="w-full h-8" />
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Link key={artist.id} href={`/artists/${artist.id}`}>
+                <div className="bg-white rounded-3xl shadow-sm p-6 text-center border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer">
+                  {artist.profilePicture ? (
+                    <img src={artist.profilePicture} alt={artist.name} className="w-24 h-24 object-cover rounded-full mx-auto mb-4 border-4 border-red-100" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gray-100 flex items-center justify-center text-3xl font-black text-gray-300">
+                      {artist.name[0]}
+                    </div>
+                  )}
+                  <h3 className="text-xl font-black text-gray-900 mb-2">{artist.name}</h3>
+                  <p className="text-gray-500 font-bold text-sm mb-1">
+                    {artist.gender === 'male' ? 'ذكر' : 'أنثى'}
+                  </p>
+                  <p className="text-gray-500 font-bold text-sm mb-4">
+                    {artist.voiceType === 'young' ? 'شاب/شابة' :
+                     artist.voiceType === 'adult' ? 'بالغ/بالغة' :
+                     'طفل/طفلة'}
+                  </p>
+                  <span className="bg-red-50 text-red-600 font-black text-xs px-4 py-2 rounded-full">
+                    {artist.audioSamples?.length || 0} عينة صوتية
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-600 text-lg">لا يوجد معلقون مطابقون لمعايير البحث.</p>
+          <p className="text-center text-gray-400 font-bold text-lg py-20">لا يوجد معلقون مطابقون</p>
         )}
       </div>
     </div>
