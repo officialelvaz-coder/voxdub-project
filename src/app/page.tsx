@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { collection, getDocs } from 'firebase/firestore';
-import { db, app } from './components/firebase';
-import { collection as col, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from './components/firebase';
 import {
   Mic2, Play, Pause, Award, Star, Mic,
   Search, MessageSquare, Headphones, FileCheck,
@@ -37,32 +35,14 @@ export default function Home() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedVoiceActor, setSelectedVoiceActor] = useState('');
-  const [workType, setWorkType] = useState('');
-  const [selectedPackage, setSelectedPackage] = useState('');
-  const [description, setDescription] = useState('');
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const workTypes = ['إعلان تجاري', 'وثائقي', 'كتاب صوتي', 'رد آلي (IVR)', 'بودكاست', 'آخر'];
-
   const packages = [
     { name: 'باقة التعليق الصوتي', price: '5000', popular: false, desc: 'مثالية للمشاريع البسيطة', features: ['تعليق صوتي احترافي', 'جودة تسجيل HD', 'تسليم خلال 3 أيام', 'مراجعة واحدة مجانية'] },
     { name: 'باقة التعليق والتدقيق', price: '8000', popular: true, desc: 'للمحتوى الاحترافي', features: ['كل مميزات الباقة الأولى', 'تدقيق لغوي للنص', 'تصحيح الأخطاء النحوية', 'تحسين الصياغة'] },
     { name: 'باقة كاملة المحتوى', price: '13000', popular: false, desc: 'حل شامل ومتكامل', features: ['كل مميزات الباقتين السابقتين', 'كتابة النص من الصفر', 'بحث وتطوير المحتوى', 'كتابة إبداعية'] },
   ];
 
-  // دالة للحصول على URL الصوت بغض النظر عن طريقة التخزين
   const getAudioUrl = (artist: Artist): string | null => {
-    if (!artist.audioSamples || artist.audioSamples.length === 0) {
-      return artist.audio || null;
-    }
+    if (!artist.audioSamples || artist.audioSamples.length === 0) return artist.audio || null;
     const first = artist.audioSamples[0];
     if (typeof first === 'string') return first;
     if (typeof first === 'object' && 'url' in first) return first.url;
@@ -73,7 +53,9 @@ export default function Home() {
     const fetchArtists = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'artists'));
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Artist[];
+        const data = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Artist))
+          .filter(a => a.name);
         setArtists(data);
       } catch (err) {
         console.error(err);
@@ -100,35 +82,6 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPackage) { setFormError('يرجى اختيار الباقة المناسبة أولاً'); return; }
-    if (!selectedVoiceActor) { setFormError('يرجى اختيار المعلق الصوتي'); return; }
-    setLoading(true);
-    setFormError(null);
-    try {
-      let fileDownloadURL = null;
-      if (attachedFile) {
-        const storage = getStorage(app);
-        const storageRef = ref(storage, `orders/${Date.now()}_${attachedFile.name}`);
-        const snapshot = await uploadBytes(storageRef, attachedFile);
-        fileDownloadURL = await getDownloadURL(snapshot.ref);
-      }
-      await addDoc(col(db, 'orders'), {
-        firstName, lastName, email, phoneNumber,
-        selectedPackage, selectedVoiceActor, workType,
-        description, fileAttachmentURL: fileDownloadURL,
-        createdAt: serverTimestamp()
-      });
-      setIsSubmitted(true);
-    } catch (err) {
-      console.error(err);
-      setFormError('حدث خطأ أثناء الإرسال، يرجى المحاولة مرة أخرى.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
       <style>{`
@@ -148,10 +101,9 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <a href="#artists" className="text-gray-600 font-bold hover:text-red-600 transition hidden md:block">المعلقون</a>
             <a href="#pricing" className="text-gray-600 font-bold hover:text-red-600 transition hidden md:block">الباقات</a>
-            <a href="#order" className="text-gray-600 font-bold hover:text-red-600 transition hidden md:block">اطلب الآن</a>
             <Link href="/login" className="text-gray-600 font-bold hover:text-red-600 transition hidden md:block">دخول</Link>
             <Link href="/register" className="bg-red-600 text-white font-bold py-2 px-6 rounded-full hover:bg-red-700 transition">
-              ابدأ الآن
+              انضم إلينا
             </Link>
           </div>
         </div>
@@ -172,7 +124,9 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a href="#artists" className="bg-gray-900 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-red-600 transition-all">اكتشف المعلقين</a>
-            <a href="#order" className="bg-white text-gray-900 border-2 border-gray-200 px-10 py-4 rounded-full font-black text-lg hover:border-red-600 hover:text-red-600 transition-all">اطلب الآن</a>
+            <Link href="/register" className="bg-white text-gray-900 border-2 border-gray-200 px-10 py-4 rounded-full font-black text-lg hover:border-red-600 hover:text-red-600 transition-all">
+              انضم إلينا
+            </Link>
           </div>
           <div className="mt-16 flex justify-center gap-12 text-center">
             {[['50+', 'معلق محترف'], ['500+', 'مشروع منجز'], ['100%', 'رضا العملاء']].map(([num, label]) => (
@@ -238,10 +192,7 @@ export default function Home() {
                           <div className="flex items-center justify-end gap-2">
                             {hasAudio && (
                               <span className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isPlaying ? 'bg-red-600' : 'bg-white/10 group-hover:bg-red-600'}`}>
-                                {isPlaying
-                                  ? <Pause size={12} className="text-white" />
-                                  : <Play size={12} className="text-white fill-white" />
-                                }
+                                {isPlaying ? <Pause size={12} className="text-white" /> : <Play size={12} className="text-white fill-white" />}
                               </span>
                             )}
                             <h3 className={`text-2xl font-black transition-colors ${hasAudio ? 'group-hover:text-red-400' : ''} ${isPlaying ? 'text-red-400' : 'text-white'}`}>
@@ -270,7 +221,7 @@ export default function Home() {
                           <img src={artist.profilePicture || artist.image} alt={artist.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-2xl font-black text-gray-400">
-                            {artist.name[0]}
+                            {artist.name?.[0] || '?'}
                           </div>
                         )}
                       </div>
@@ -349,112 +300,42 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a href="#order" className={`w-full py-3 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-900 text-white hover:bg-gray-700'}`}>
-                  اختيار الباقة
-                </a>
+                <Link
+                  href="/register"
+                  className={`w-full py-3 rounded-2xl block text-center font-black transition-all ${plan.popular ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-900 text-white hover:bg-gray-700'}`}
+                >
+                  ابدأ الآن
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Order Form */}
-      <section id="order" className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-gray-900 mb-4">ابدأ مشروعك الآن</h2>
-            <p className="text-gray-500 font-bold">اختر الباقة المناسبة وأكمل بياناتك لنبدأ العمل فوراً</p>
+      {/* CTA */}
+      <section className="py-24 bg-gray-900 mx-4 rounded-3xl text-center text-white mb-8">
+        <div className="max-w-2xl mx-auto px-6">
+          <h2 className="text-4xl font-black mb-6">هل أنت مستعد؟</h2>
+          <p className="text-gray-400 font-bold mb-10 text-lg">انضم إلى VoxDub اليوم — سواء كنت معلقاً صوتياً أو صاحب مشروع</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/register" className="bg-red-600 text-white px-10 py-4 rounded-full font-black text-lg hover:bg-red-700 transition-all">
+              انضم إلينا
+            </Link>
+            <Link href="/login" className="bg-white text-gray-900 px-10 py-4 rounded-full font-black text-lg hover:bg-gray-100 transition-all">
+              تسجيل الدخول
+            </Link>
           </div>
-
-          {isSubmitted ? (
-            <div className="max-w-2xl mx-auto p-12 bg-green-50 border-2 border-green-200 text-green-800 rounded-3xl text-center">
-              <h2 className="text-3xl font-black mb-4">تم استلام طلبك بنجاح!</h2>
-              <p className="text-lg font-bold">شكراً لثقتك بـ VoxDub. سيقوم فريقنا بالتواصل معك قريباً.</p>
-              <button onClick={() => setIsSubmitted(false)} className="mt-8 text-green-700 font-black underline">إرسال طلب آخر</button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {packages.map((pkg) => (
-                  <div
-                    key={pkg.name}
-                    onClick={() => setSelectedPackage(pkg.name)}
-                    className={`cursor-pointer p-6 rounded-3xl border-2 transition-all ${selectedPackage === pkg.name ? 'border-red-600 bg-red-50 shadow-lg' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                  >
-                    <h3 className="font-black text-lg text-gray-900 mb-2">{pkg.name}</h3>
-                    <p className="text-2xl font-black text-red-600 mb-1">{pkg.price} <span className="text-sm font-bold text-gray-400">د.ج</span></p>
-                    <p className="text-xs text-gray-500 font-bold mb-4">{pkg.desc}</p>
-                    <ul className="space-y-2">
-                      {pkg.features.slice(0, 3).map((f, i) => (
-                        <li key={i} className="text-xs text-gray-600 flex items-center gap-2 font-bold">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-600 flex-shrink-0" /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-gray-50 p-8 md:p-12 rounded-3xl border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm" placeholder="الاسم الأول *" />
-                      <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm" placeholder="اللقب *" />
-                    </div>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm" placeholder="البريد الإلكتروني *" />
-                    <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm" placeholder="رقم الهاتف *" />
-                    <select value={workType} onChange={e => setWorkType(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm text-gray-600">
-                      <option value="">اختر نوع العمل *</option>
-                      {workTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-black text-gray-700 mb-3">اختر المعلق الصوتي *</label>
-                      {loadingArtists ? (
-                        <p className="text-gray-400 text-sm font-bold">جاري التحميل...</p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          {[...artists.map(a => a.name), 'اختيار الأنسب من طرفكم'].map(name => (
-                            <button
-                              key={name}
-                              type="button"
-                              onClick={() => setSelectedVoiceActor(name)}
-                              className={`p-2 text-xs font-black border rounded-xl transition-all ${selectedVoiceActor === name ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-red-400'}`}
-                            >
-                              {name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <textarea value={description} onChange={e => setDescription(e.target.value)} required className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none font-bold text-sm" rows={3} placeholder="تفاصيل إضافية *" />
-                    <input type="file" onChange={e => setAttachedFile(e.target.files ? e.target.files[0] : null)} className="w-full text-xs text-gray-500 cursor-pointer font-bold" />
-                  </div>
-                </div>
-
-                <div className="mt-10">
-                  <button type="submit" disabled={loading} className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xl shadow-xl hover:bg-gray-900 transition-all disabled:bg-gray-300">
-                    {loading ? 'جاري الإرسال...' : 'تأكيد وإرسال الطلب'}
-                  </button>
-                  {formError && <p className="text-red-600 text-center font-black mt-4">{formError}</p>}
-                </div>
-              </div>
-            </form>
-          )}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-950 text-white py-16 text-center rounded-t-3xl mt-4">
+      <footer className="bg-gray-950 text-white py-16 text-center rounded-t-3xl">
         <div className="text-3xl font-black mb-4">Vox<span className="text-red-500">Dub</span></div>
         <p className="text-gray-500 font-bold text-sm">إدارة وتأسيس: لميس حميمي © 2026 — جميع الحقوق محفوظة</p>
         <div className="flex justify-center gap-8 mt-8">
           <a href="#artists" className="text-gray-400 hover:text-white font-bold text-sm transition">المعلقون</a>
           <Link href="/login" className="text-gray-400 hover:text-white font-bold text-sm transition">تسجيل الدخول</Link>
-          <Link href="/register" className="text-gray-400 hover:text-white font-bold text-sm transition">تسجيل جديد</Link>
+          <Link href="/register" className="text-gray-400 hover:text-white font-bold text-sm transition">انضم إلينا</Link>
         </div>
       </footer>
     </div>
