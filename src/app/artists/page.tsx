@@ -86,8 +86,8 @@ const Artists: React.FC = () => {
               onChange={e => setFilterGender(e.target.value)}
             >
               <option value="all">الكل</option>
-              <option value="male">ذكر</option>
-              <option value="female">أنثى</option>
+              <option value="ذكر">ذكر</option>
+              <option value="أنثى">أنثى</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
@@ -98,9 +98,9 @@ const Artists: React.FC = () => {
               onChange={e => setFilterVoiceType(e.target.value)}
             >
               <option value="all">الكل</option>
-              <option value="young">شاب/شابة</option>
-              <option value="adult">بالغ/بالغة</option>
-              <option value="child">طفل/طفلة</option>
+              <option value="رخيم">رخيم</option>
+              <option value="حاد">حاد</option>
+              <option value="طفل">طفل</option>
             </select>
           </div>
         </div>
@@ -122,14 +122,8 @@ const Artists: React.FC = () => {
                     </div>
                   )}
                   <h3 className="text-xl font-black text-gray-900 mb-2">{artist.name}</h3>
-                  <p className="text-gray-500 font-bold text-sm mb-1">
-                    {artist.gender === 'male' ? 'ذكر' : 'أنثى'}
-                  </p>
-                  <p className="text-gray-500 font-bold text-sm mb-4">
-                    {artist.voiceType === 'young' ? 'شاب/شابة' :
-                     artist.voiceType === 'adult' ? 'بالغ/بالغة' :
-                     'طفل/طفلة'}
-                  </p>
+                  <p className="text-gray-500 font-bold text-sm mb-1">{artist.gender}</p>
+                  <p className="text-gray-500 font-bold text-sm mb-4">{artist.voiceType}</p>
                   <span className="bg-red-50 text-red-600 font-black text-xs px-4 py-2 rounded-full">
                     {artist.audioSamples?.length || 0} عينة صوتية
                   </span>
