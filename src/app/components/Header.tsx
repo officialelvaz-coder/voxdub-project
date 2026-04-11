@@ -1,6 +1,6 @@
 import { Mic2, LayoutDashboard } from 'lucide-react';
 import { Button } from './ui/button';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export function Header() {
   const scrollToSection = (id: string) => {
@@ -14,7 +14,6 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* قسم الشعار */}
           <div className="flex items-center gap-2">
-            {/* الكلاس bg-vox-primary هو الذي يتحكم في لون الأيقونة من ملف theme.css */}
             <div className="bg-vox-primary p-2 rounded-lg">
               <Mic2 className="size-6 text-white" />
             </div>
@@ -24,15 +23,15 @@ export function Header() {
           {/* أزرار التنقل */}
           <div className="flex items-center gap-3">
             {/* زر لوحة التحكم */}
-            <Link 
-              to="/dashboard" 
+            <Link
+              href="/dashboard"
               className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors border border-gray-200"
             >
               <LayoutDashboard className="size-4" />
               <span>لوحة التحكم</span>
             </Link>
 
-            {/* زر اطلب الآن - الكلاس btn-vox هو الذي يتحكم في لونه من ملف theme.css */}
+            {/* زر اطلب الآن */}
             <Button
               onClick={() => scrollToSection('order')}
               className="btn-vox"
