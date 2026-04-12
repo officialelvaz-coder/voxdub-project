@@ -16,6 +16,8 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState('ذكر');
   const [voiceType, setVoiceType] = useState('رخيم');
+  const [tagline, setTagline] = useState('');
+  const [bio, setBio] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -60,6 +62,8 @@ const Register = () => {
           email,
           gender,
           voiceType,
+          tagline,
+          bio,
           password,
           role: 'artist',
           approved: false,
@@ -120,7 +124,6 @@ const Register = () => {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap'); * { font-family: 'Cairo', sans-serif; }`}</style>
 
       <div className="max-w-lg w-full">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 justify-center">
             <div className="bg-red-600 p-2 rounded-xl">
@@ -130,7 +133,6 @@ const Register = () => {
           </Link>
         </div>
 
-        {/* اختيار النوع */}
         {step === 'choose' && (
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <h2 className="text-2xl font-black text-gray-900 text-center mb-2">انضم إلى VoxDub</h2>
@@ -167,7 +169,6 @@ const Register = () => {
           </div>
         )}
 
-        {/* نموذج التسجيل */}
         {step === 'form' && (
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <button
@@ -190,54 +191,51 @@ const Register = () => {
               {userType === 'artist' ? (
                 <>
                   <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
+                    type="text" value={name} onChange={e => setName(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="الاسم الكامل *"
                   />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
+                    type="email" value={email} onChange={e => setEmail(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="البريد الإلكتروني *"
                   />
                   <div className="grid grid-cols-2 gap-4">
-                    <select
-                      value={gender}
-                      onChange={e => setGender(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm"
-                    >
+                    <select value={gender} onChange={e => setGender(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm">
                       <option value="ذكر">ذكر</option>
                       <option value="أنثى">أنثى</option>
                     </select>
-                    <select
-                      value={voiceType}
-                      onChange={e => setVoiceType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm"
-                    >
+                    <select value={voiceType} onChange={e => setVoiceType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm">
                       <option value="رخيم">رخيم</option>
                       <option value="ناعم">ناعم</option>
                       <option value="إعلاني">إعلاني</option>
                       <option value="وثائقي">وثائقي</option>
                     </select>
                   </div>
+
+                  {/* tagline */}
                   <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
+                    type="text" value={tagline} onChange={e => setTagline(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
+                    placeholder="Tagline — جملة قصيرة تعبر عنك (مثال: صوت يصنع الفارق)"
+                  />
+
+                  {/* bio */}
+                  <textarea
+                    value={bio} onChange={e => setBio(e.target.value)} rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors resize-none"
+                    placeholder="نبذة عنك — اكتب سيرتك الذاتية باختصار (خبراتك، تخصصاتك، إنجازاتك)"
+                  />
+
+                  <input
+                    type="password" value={password} onChange={e => setPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
                   />
                   <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
+                    type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="تأكيد كلمة المرور *"
                   />
@@ -245,48 +243,32 @@ const Register = () => {
               ) : (
                 <>
                   <input
-                    type="text"
-                    value={clientName}
-                    onChange={e => setClientName(e.target.value)}
-                    required
+                    type="text" value={clientName} onChange={e => setClientName(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="الاسم الكامل *"
                   />
                   <input
-                    type="email"
-                    value={clientEmail}
-                    onChange={e => setClientEmail(e.target.value)}
-                    required
+                    type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="البريد الإلكتروني *"
                   />
                   <input
-                    type="text"
-                    value={company}
-                    onChange={e => setCompany(e.target.value)}
+                    type="text" value={company} onChange={e => setCompany(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="اسم الشركة أو المؤسسة (اختياري)"
                   />
                   <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="رقم الهاتف (اختياري)"
                   />
                   <input
-                    type="password"
-                    value={clientPassword}
-                    onChange={e => setClientPassword(e.target.value)}
-                    required
+                    type="password" value={clientPassword} onChange={e => setClientPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
                   />
                   <input
-                    type="password"
-                    value={clientConfirmPassword}
-                    onChange={e => setClientConfirmPassword(e.target.value)}
-                    required
+                    type="password" value={clientConfirmPassword} onChange={e => setClientConfirmPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
                     placeholder="تأكيد كلمة المرور *"
                   />
@@ -299,11 +281,8 @@ const Register = () => {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-gray-900 disabled:bg-gray-200 transition-all"
-              >
+              <button type="submit" disabled={loading}
+                className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-gray-900 disabled:bg-gray-200 transition-all">
                 {loading ? 'جاري التسجيل...' : 'إنشاء الحساب'}
               </button>
             </form>
