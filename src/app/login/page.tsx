@@ -40,11 +40,6 @@ const Login = () => {
       const artist = artists.find(a => a.email === email && a.password === password);
 
       if (artist) {
-        if (!artist.approved) {
-          setError('حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار.');
-          setLoading(false);
-          return;
-        }
         localStorage.setItem('userRole', 'artist');
         localStorage.setItem('userId', artist.id);
         router.push('/dashboard');
