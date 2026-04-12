@@ -11,7 +11,6 @@ const Register = () => {
   const [step, setStep] = useState<'choose' | 'form'>('choose');
   const [userType, setUserType] = useState<'artist' | 'client' | null>(null);
 
-  // حقول المعلق
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState('ذكر');
@@ -21,7 +20,6 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // حقول صاحب العمل
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPassword, setClientPassword] = useState('');
@@ -66,7 +64,7 @@ const Register = () => {
           bio,
           password,
           role: 'artist',
-          approved: false,
+          approved: true,
           profilePicture: '',
           audioSamples: [],
           createdAt: new Date().toISOString()
@@ -106,14 +104,8 @@ const Register = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
         <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100 max-w-md w-full">
           <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">
-            {userType === 'artist' ? 'طلبك قيد المراجعة!' : 'تم التسجيل بنجاح!'}
-          </h2>
-          <p className="text-gray-500 font-bold">
-            {userType === 'artist'
-              ? 'سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل حسابك.'
-              : 'جاري تحويلك لصفحة تسجيل الدخول...'}
-          </p>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">تم التسجيل بنجاح!</h2>
+          <p className="text-gray-500 font-bold">جاري تحويلك لصفحة تسجيل الدخول...</p>
         </div>
       </div>
     );
@@ -139,10 +131,8 @@ const Register = () => {
             <p className="text-gray-500 font-bold text-center mb-8">اختر نوع حسابك</p>
 
             <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handleChoose('artist')}
-                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center"
-              >
+              <button onClick={() => handleChoose('artist')}
+                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center">
                 <div className="w-16 h-16 bg-gray-100 group-hover:bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
                   <Mic size={32} className="text-gray-400 group-hover:text-red-600 transition-colors" />
                 </div>
@@ -150,10 +140,8 @@ const Register = () => {
                 <p className="text-gray-400 font-bold text-sm">أنا معلق صوتي محترف وأريد عرض خدماتي</p>
               </button>
 
-              <button
-                onClick={() => handleChoose('client')}
-                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center"
-              >
+              <button onClick={() => handleChoose('client')}
+                className="group p-8 rounded-2xl border-2 border-gray-100 hover:border-red-600 hover:bg-red-50 transition-all text-center">
                 <div className="w-16 h-16 bg-gray-100 group-hover:bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
                   <Briefcase size={32} className="text-gray-400 group-hover:text-red-600 transition-colors" />
                 </div>
@@ -171,10 +159,8 @@ const Register = () => {
 
         {step === 'form' && (
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-            <button
-              onClick={() => { setStep('choose'); setError(''); }}
-              className="flex items-center gap-2 text-gray-500 font-bold hover:text-red-600 transition mb-6"
-            >
+            <button onClick={() => { setStep('choose'); setError(''); }}
+              className="flex items-center gap-2 text-gray-500 font-bold hover:text-red-600 transition mb-6">
               <ArrowRight size={18} /> رجوع
             </button>
 
@@ -183,23 +169,19 @@ const Register = () => {
             </h2>
             <p className="text-gray-400 font-bold text-sm mb-6">
               {userType === 'artist'
-                ? 'سيتم مراجعة طلبك من الإدارة قبل النشر'
+                ? 'أنشئ حسابك وابدأ عرض خدماتك فوراً'
                 : 'أنشئ حسابك وابدأ طلب خدماتك'}
             </p>
 
             <form onSubmit={handleRegister} className="space-y-4">
               {userType === 'artist' ? (
                 <>
-                  <input
-                    type="text" value={name} onChange={e => setName(e.target.value)} required
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="الاسم الكامل *"
-                  />
-                  <input
-                    type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                    placeholder="الاسم الكامل *" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="البريد الإلكتروني *"
-                  />
+                    placeholder="البريد الإلكتروني *" />
                   <div className="grid grid-cols-2 gap-4">
                     <select value={gender} onChange={e => setGender(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm">
@@ -214,64 +196,39 @@ const Register = () => {
                       <option value="وثائقي">وثائقي</option>
                     </select>
                   </div>
-
-                  {/* tagline */}
-                  <input
-                    type="text" value={tagline} onChange={e => setTagline(e.target.value)}
+                  <input type="text" value={tagline} onChange={e => setTagline(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="Tagline — جملة قصيرة تعبر عنك (مثال: صوت يصنع الفارق)"
-                  />
-
-                  {/* bio */}
-                  <textarea
-                    value={bio} onChange={e => setBio(e.target.value)} rows={4}
+                    placeholder="Tagline — جملة قصيرة تعبر عنك (مثال: صوت يصنع الفارق)" />
+                  <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors resize-none"
-                    placeholder="نبذة عنك — اكتب سيرتك الذاتية باختصار (خبراتك، تخصصاتك، إنجازاتك)"
-                  />
-
-                  <input
-                    type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                    placeholder="نبذة عنك — اكتب سيرتك الذاتية باختصار" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
-                  />
-                  <input
-                    type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *" />
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="تأكيد كلمة المرور *"
-                  />
+                    placeholder="تأكيد كلمة المرور *" />
                 </>
               ) : (
                 <>
-                  <input
-                    type="text" value={clientName} onChange={e => setClientName(e.target.value)} required
+                  <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="الاسم الكامل *"
-                  />
-                  <input
-                    type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} required
+                    placeholder="الاسم الكامل *" />
+                  <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="البريد الإلكتروني *"
-                  />
-                  <input
-                    type="text" value={company} onChange={e => setCompany(e.target.value)}
+                    placeholder="البريد الإلكتروني *" />
+                  <input type="text" value={company} onChange={e => setCompany(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="اسم الشركة أو المؤسسة (اختياري)"
-                  />
-                  <input
-                    type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                    placeholder="اسم الشركة أو المؤسسة (اختياري)" />
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="رقم الهاتف (اختياري)"
-                  />
-                  <input
-                    type="password" value={clientPassword} onChange={e => setClientPassword(e.target.value)} required
+                    placeholder="رقم الهاتف (اختياري)" />
+                  <input type="password" value={clientPassword} onChange={e => setClientPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *"
-                  />
-                  <input
-                    type="password" value={clientConfirmPassword} onChange={e => setClientConfirmPassword(e.target.value)} required
+                    placeholder="كلمة المرور (لاتينية + أرقام، 6 أحرف على الأقل) *" />
+                  <input type="password" value={clientConfirmPassword} onChange={e => setClientConfirmPassword(e.target.value)} required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm focus:border-red-400 transition-colors"
-                    placeholder="تأكيد كلمة المرور *"
-                  />
+                    placeholder="تأكيد كلمة المرور *" />
                 </>
               )}
 
