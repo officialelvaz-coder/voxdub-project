@@ -9,8 +9,7 @@ import Link from 'next/link';
 import {
   Mic2, Upload, LogOut, User, Music,
   Plus, Eye, Users, FileText,
-  BarChart3, Bell, Clock, CheckCircle,
-  PlayCircle, AlertCircle, XCircle, Check, X
+  Bell, CheckCircle, Check, X
 } from 'lucide-react';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -30,6 +29,7 @@ const statusOptions = [
 ];
 
 const Dashboard = () => {
+  const [mounted, setMounted] = useState(false);
   const [artist, setArtist] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [allArtists, setAllArtists] = useState<any[]>([]);
@@ -43,6 +43,12 @@ const Dashboard = () => {
   const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const userId = localStorage.getItem('userId');
     const role = localStorage.getItem('userRole');
 
@@ -55,7 +61,6 @@ const Dashboard = () => {
         try {
           const artistsSnap = await getDocs(collection(db, 'artists'));
           setAllArtists(artistsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
           const ordersSnap = await getDocs(collection(db, 'orders'));
           setAllOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (err) { console.error(err); }
@@ -72,7 +77,7 @@ const Dashboard = () => {
       };
       fetchArtist();
     }
-  }, [router]);
+  }, [mounted, router]);
 
   const handleApprove = async (artistId: string) => {
     try {
@@ -127,7 +132,8 @@ const Dashboard = () => {
 
   const handleLogout = () => { localStorage.clear(); router.push('/login'); };
 
-  if (loading) {
+  // شاشة التحميل
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
         <div className="text-xl font-black text-red-600 animate-pulse">جاري التحميل...</div>
@@ -139,13 +145,8 @@ const Dashboard = () => {
   if (isAdmin) {
     const pendingArtists = allArtists.filter(a => !a.approved);
     const approvedArtists = allArtists.filter(a => a.approved);
-
     const ordersByStatus = {
-      pending:     allOrders.filter(o => o.status === 'pending'),
-      accepted:    allOrders.filter(o => o.status === 'accepted'),
-      in_progress: allOrders.filter(o => o.status === 'in_progress'),
-      review:      allOrders.filter(o => o.status === 'review'),
-      completed:   allOrders.filter(o => o.status === 'completed'),
+      completed: allOrders.filter(o => o.status === 'completed'),
     };
 
     return (
@@ -168,7 +169,6 @@ const Dashboard = () => {
         </header>
 
         <div className="max-w-7xl mx-auto px-6 py-10">
-
           {/* إحصائيات */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
@@ -210,7 +210,6 @@ const Dashboard = () => {
           {/* تبويب المعلقين */}
           {activeTab === 'artists' && (
             <div className="space-y-6">
-              {/* بانتظار الموافقة */}
               {pendingArtists.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 overflow-hidden">
                   <div className="px-8 py-5 border-b border-yellow-100 bg-yellow-50">
@@ -229,16 +228,12 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleApprove(a.id)}
-                            className="flex items-center gap-1 bg-green-600 text-white px-4 py-2 rounded-full font-black text-sm hover:bg-green-700 transition"
-                          >
+                          <button onClick={() => handleApprove(a.id)}
+                            className="flex items-center gap-1 bg-green-600 text-white px-4 py-2 rounded-full font-black text-sm hover:bg-green-700 transition">
                             <Check size={14} /> موافقة
                           </button>
-                          <button
-                            onClick={() => handleReject(a.id)}
-                            className="flex items-center gap-1 bg-red-100 text-red-600 px-4 py-2 rounded-full font-black text-sm hover:bg-red-200 transition"
-                          >
+                          <button onClick={() => handleReject(a.id)}
+                            className="flex items-center gap-1 bg-red-100 text-red-600 px-4 py-2 rounded-full font-black text-sm hover:bg-red-200 transition">
                             <X size={14} /> رفض
                           </button>
                         </div>
@@ -248,7 +243,6 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* المعلقون الموافق عليهم */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-lg font-black text-gray-900">✅ المعلقون النشطون ({approvedArtists.length})</h2>
@@ -278,10 +272,7 @@ const Dashboard = () => {
                         <span className={`px-3 py-1 rounded-full text-xs font-black ${a.audioSamples?.length > 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                           {a.audioSamples?.length > 0 ? `${a.audioSamples.length} عينة` : 'بدون عينة'}
                         </span>
-                        <button
-                          onClick={() => handleReject(a.id)}
-                          className="text-gray-400 hover:text-red-600 font-bold text-xs transition"
-                        >
+                        <button onClick={() => handleReject(a.id)} className="text-gray-400 hover:text-red-600 font-bold text-xs transition">
                           إلغاء الموافقة
                         </button>
                         <Link href={`/artists/${a.id}`} className="flex items-center gap-1 text-gray-500 hover:text-red-600 font-bold text-sm transition">
@@ -305,7 +296,6 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <>
-                  {/* فلترة سريعة */}
                   <div className="flex flex-wrap gap-2">
                     {statusOptions.map(s => (
                       <span key={s.value} className={`px-4 py-2 rounded-full text-xs font-black ${statusConfig[s.value]?.color}`}>
@@ -314,7 +304,6 @@ const Dashboard = () => {
                     ))}
                   </div>
 
-                  {/* قائمة الطلبات */}
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="divide-y divide-gray-50">
                       {allOrders.map(order => {
@@ -329,21 +318,13 @@ const Dashboard = () => {
                                     {status.label}
                                   </span>
                                 </div>
-                                <p className="text-gray-500 font-bold text-sm">
-                                  العميل: <span className="text-gray-700">{order.clientName || 'غير محدد'}</span>
-                                </p>
-                                <p className="text-gray-500 font-bold text-sm">
-                                  المعلق: <span className="text-gray-700">{order.selectedVoiceActor}</span>
-                                </p>
-                                <p className="text-gray-500 font-bold text-sm">
-                                  نوع العمل: <span className="text-gray-700">{order.workType}</span>
-                                </p>
+                                <p className="text-gray-500 font-bold text-sm">العميل: <span className="text-gray-700">{order.clientName || 'غير محدد'}</span></p>
+                                <p className="text-gray-500 font-bold text-sm">المعلق: <span className="text-gray-700">{order.selectedVoiceActor}</span></p>
+                                <p className="text-gray-500 font-bold text-sm">نوع العمل: <span className="text-gray-700">{order.workType}</span></p>
                                 {order.description && (
                                   <p className="text-gray-400 font-bold text-xs mt-2 line-clamp-2">{order.description}</p>
                                 )}
                               </div>
-
-                              {/* تغيير الحالة */}
                               <div className="flex-shrink-0">
                                 <label className="block text-xs font-black text-gray-500 mb-1">تغيير الحالة</label>
                                 <select
@@ -378,9 +359,7 @@ const Dashboard = () => {
 
       <header className="bg-gray-900 text-white px-8 py-5 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="bg-red-600 p-2 rounded-xl">
-            <Mic2 className="w-5 h-5 text-white" />
-          </div>
+          <div className="bg-red-600 p-2 rounded-xl"><Mic2 className="w-5 h-5 text-white" /></div>
           <span className="text-xl font-black">Vox<span className="text-red-500">Dub</span></span>
         </div>
         <div className="flex items-center gap-4">
@@ -414,11 +393,8 @@ const Dashboard = () => {
             { key: 'profile', label: 'الصورة الشخصية', icon: User },
             { key: 'audio', label: 'العينات الصوتية', icon: Music },
           ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all ${activeTab === tab.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}
-            >
+            <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all ${activeTab === tab.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}>
               <tab.icon size={16} />
               {tab.label}
             </button>
