@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../components/firebase';
 import { useRouter } from 'next/navigation';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 import {
   Mic2, Upload, LogOut, User, Music,
   Plus, Eye, Users, FileText,
-  Bell, CheckCircle, Check, X
+  Bell, CheckCircle, Check, X, Trash2
 } from 'lucide-react';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -40,18 +40,15 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'artists' | 'orders' | 'profile' | 'audio'>('artists');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!mounted) return;
-
     const userId = localStorage.getItem('userId');
     const role = localStorage.getItem('userRole');
-
     if (!userId) { router.push('/login'); return; }
 
     if (role === 'admin') {
@@ -93,6 +90,19 @@ const Dashboard = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleDelete = async (artistId: string, artistName: string) => {
+    if (!confirm(`هل أنت متأكد من حذف المعلق "${artistName}"؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
+    setDeletingId(artistId);
+    try {
+      await deleteDoc(doc(db, 'artists', artistId));
+      setAllArtists(prev => prev.filter(a => a.id !== artistId));
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء الحذف.');
+    }
+    setDeletingId(null);
+  };
+
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
@@ -132,7 +142,6 @@ const Dashboard = () => {
 
   const handleLogout = () => { localStorage.clear(); router.push('/login'); };
 
-  // شاشة التحميل
   if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
@@ -145,9 +154,7 @@ const Dashboard = () => {
   if (isAdmin) {
     const pendingArtists = allArtists.filter(a => !a.approved);
     const approvedArtists = allArtists.filter(a => a.approved);
-    const ordersByStatus = {
-      completed: allOrders.filter(o => o.status === 'completed'),
-    };
+    const completedOrders = allOrders.filter(o => o.status === 'completed');
 
     return (
       <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -155,9 +162,7 @@ const Dashboard = () => {
 
         <header className="bg-gray-900 text-white px-8 py-5 flex justify-between items-center sticky top-0 z-40">
           <div className="flex items-center gap-3">
-            <div className="bg-red-600 p-2 rounded-xl">
-              <Mic2 className="w-5 h-5 text-white" />
-            </div>
+            <div className="bg-red-600 p-2 rounded-xl"><Mic2 className="w-5 h-5 text-white" /></div>
             <span className="text-xl font-black">Vox<span className="text-red-500">Dub</span> — لوحة المديرة</span>
           </div>
           <div className="flex items-center gap-4">
@@ -175,7 +180,7 @@ const Dashboard = () => {
               { label: 'إجمالي المعلقين', value: allArtists.length, color: 'bg-blue-500', icon: Users },
               { label: 'بانتظار الموافقة', value: pendingArtists.length, color: 'bg-yellow-500', icon: Bell },
               { label: 'إجمالي الطلبات', value: allOrders.length, color: 'bg-purple-500', icon: FileText },
-              { label: 'طلبات مكتملة', value: ordersByStatus.completed.length, color: 'bg-green-500', icon: CheckCircle },
+              { label: 'طلبات مكتملة', value: completedOrders.length, color: 'bg-green-500', icon: CheckCircle },
             ].map((stat, i) => (
               <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                 <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center mb-3`}>
@@ -193,11 +198,8 @@ const Dashboard = () => {
               { key: 'artists', label: 'المعلقون', icon: Users },
               { key: 'orders', label: 'الطلبات', icon: FileText },
             ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all ${activeTab === tab.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}
-              >
+              <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all ${activeTab === tab.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                 <tab.icon size={16} />
                 {tab.label}
                 {tab.key === 'artists' && pendingArtists.length > 0 && (
@@ -210,6 +212,7 @@ const Dashboard = () => {
           {/* تبويب المعلقين */}
           {activeTab === 'artists' && (
             <div className="space-y-6">
+              {/* بانتظار الموافقة */}
               {pendingArtists.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 overflow-hidden">
                   <div className="px-8 py-5 border-b border-yellow-100 bg-yellow-50">
@@ -225,6 +228,7 @@ const Dashboard = () => {
                           <div>
                             <p className="font-black text-gray-900">{a.name}</p>
                             <p className="text-sm text-gray-500 font-bold">{a.email} | {a.voiceType} | {a.gender}</p>
+                            {a.tagline && <p className="text-xs text-gray-400 font-bold italic mt-0.5">"{a.tagline}"</p>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -233,8 +237,16 @@ const Dashboard = () => {
                             <Check size={14} /> موافقة
                           </button>
                           <button onClick={() => handleReject(a.id)}
-                            className="flex items-center gap-1 bg-red-100 text-red-600 px-4 py-2 rounded-full font-black text-sm hover:bg-red-200 transition">
+                            className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-black text-sm hover:bg-yellow-200 transition">
                             <X size={14} /> رفض
+                          </button>
+                          <button
+                            onClick={() => handleDelete(a.id, a.name)}
+                            disabled={deletingId === a.id}
+                            className="flex items-center gap-1 bg-red-600 text-white px-4 py-2 rounded-full font-black text-sm hover:bg-red-700 transition disabled:bg-gray-300"
+                          >
+                            <Trash2 size={14} />
+                            {deletingId === a.id ? '...' : 'حذف'}
                           </button>
                         </div>
                       </div>
@@ -243,6 +255,7 @@ const Dashboard = () => {
                 </div>
               )}
 
+              {/* المعلقون النشطون */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-lg font-black text-gray-900">✅ المعلقون النشطون ({approvedArtists.length})</h2>
@@ -266,18 +279,27 @@ const Dashboard = () => {
                         <div>
                           <p className="font-black text-gray-900">{a.name}</p>
                           <p className="text-sm text-gray-500 font-bold">{a.voiceType} | {a.gender}</p>
+                          {a.tagline && <p className="text-xs text-gray-400 font-bold italic mt-0.5">"{a.tagline}"</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-black ${a.audioSamples?.length > 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                           {a.audioSamples?.length > 0 ? `${a.audioSamples.length} عينة` : 'بدون عينة'}
                         </span>
-                        <button onClick={() => handleReject(a.id)} className="text-gray-400 hover:text-red-600 font-bold text-xs transition">
+                        <button onClick={() => handleReject(a.id)} className="text-gray-400 hover:text-yellow-600 font-bold text-xs transition">
                           إلغاء الموافقة
                         </button>
                         <Link href={`/artists/${a.id}`} className="flex items-center gap-1 text-gray-500 hover:text-red-600 font-bold text-sm transition">
                           <Eye size={16} /> عرض
                         </Link>
+                        <button
+                          onClick={() => handleDelete(a.id, a.name)}
+                          disabled={deletingId === a.id}
+                          className="flex items-center gap-1 text-red-400 hover:text-red-600 font-bold text-sm transition disabled:text-gray-300"
+                        >
+                          <Trash2 size={16} />
+                          {deletingId === a.id ? '...' : 'حذف'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -303,7 +325,6 @@ const Dashboard = () => {
                       </span>
                     ))}
                   </div>
-
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="divide-y divide-gray-50">
                       {allOrders.map(order => {
@@ -314,27 +335,18 @@ const Dashboard = () => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                                   <h3 className="font-black text-gray-900">{order.selectedPackage}</h3>
-                                  <span className={`px-3 py-1 rounded-full text-xs font-black ${status.color}`}>
-                                    {status.label}
-                                  </span>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-black ${status.color}`}>{status.label}</span>
                                 </div>
                                 <p className="text-gray-500 font-bold text-sm">العميل: <span className="text-gray-700">{order.clientName || 'غير محدد'}</span></p>
                                 <p className="text-gray-500 font-bold text-sm">المعلق: <span className="text-gray-700">{order.selectedVoiceActor}</span></p>
                                 <p className="text-gray-500 font-bold text-sm">نوع العمل: <span className="text-gray-700">{order.workType}</span></p>
-                                {order.description && (
-                                  <p className="text-gray-400 font-bold text-xs mt-2 line-clamp-2">{order.description}</p>
-                                )}
+                                {order.description && <p className="text-gray-400 font-bold text-xs mt-2 line-clamp-2">{order.description}</p>}
                               </div>
                               <div className="flex-shrink-0">
                                 <label className="block text-xs font-black text-gray-500 mb-1">تغيير الحالة</label>
-                                <select
-                                  value={order.status || 'pending'}
-                                  onChange={e => handleStatusChange(order.id, e.target.value)}
-                                  className="bg-white border border-gray-200 rounded-xl py-2 px-3 text-gray-700 font-bold text-sm outline-none focus:border-red-400"
-                                >
-                                  {statusOptions.map(s => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
-                                  ))}
+                                <select value={order.status || 'pending'} onChange={e => handleStatusChange(order.id, e.target.value)}
+                                  className="bg-white border border-gray-200 rounded-xl py-2 px-3 text-gray-700 font-bold text-sm outline-none focus:border-red-400">
+                                  {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                                 </select>
                               </div>
                             </div>
@@ -383,7 +395,8 @@ const Dashboard = () => {
           </div>
           <div>
             <h1 className="text-2xl font-black">{artist?.name}</h1>
-            <p className="text-gray-400 font-bold">{artist?.voiceType} | {artist?.gender}</p>
+            {artist?.tagline && <p className="text-red-400 font-black text-sm italic mt-1">"{artist.tagline}"</p>}
+            <p className="text-gray-400 font-bold mt-1">{artist?.voiceType} | {artist?.gender}</p>
             <p className="text-gray-500 text-sm font-bold mt-1">{artist?.audioSamples?.length || 0} عينة صوتية</p>
           </div>
         </div>
