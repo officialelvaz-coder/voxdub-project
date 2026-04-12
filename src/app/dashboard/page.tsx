@@ -76,30 +76,37 @@ const Dashboard = () => {
     }
   }, [mounted, router]);
 
-  const handleApprove = async (artistId: string) => {
+  // موافقة على عينة صوتية
+  const handleApproveSample = async (artistId: string, sampleIndex: number) => {
+    const targetArtist = allArtists.find(a => a.id === artistId);
+    if (!targetArtist) return;
+    const updatedSamples = targetArtist.audioSamples.map((s: any, i: number) =>
+      i === sampleIndex ? { ...s, pendingApproval: false } : s
+    );
     try {
-      await updateDoc(doc(db, 'artists', artistId), { approved: true });
-      setAllArtists(prev => prev.map(a => a.id === artistId ? { ...a, approved: true } : a));
+      await updateDoc(doc(db, 'artists', artistId), { audioSamples: updatedSamples });
+      setAllArtists(prev => prev.map(a => a.id === artistId ? { ...a, audioSamples: updatedSamples } : a));
     } catch (err) { console.error(err); }
   };
 
-  const handleReject = async (artistId: string) => {
+  // رفض عينة صوتية (حذفها)
+  const handleRejectSample = async (artistId: string, sampleIndex: number) => {
+    const targetArtist = allArtists.find(a => a.id === artistId);
+    if (!targetArtist) return;
+    const updatedSamples = targetArtist.audioSamples.filter((_: any, i: number) => i !== sampleIndex);
     try {
-      await updateDoc(doc(db, 'artists', artistId), { approved: false });
-      setAllArtists(prev => prev.map(a => a.id === artistId ? { ...a, approved: false } : a));
+      await updateDoc(doc(db, 'artists', artistId), { audioSamples: updatedSamples });
+      setAllArtists(prev => prev.map(a => a.id === artistId ? { ...a, audioSamples: updatedSamples } : a));
     } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (artistId: string, artistName: string) => {
-    if (!confirm(`هل أنت متأكد من حذف المعلق "${artistName}"؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
+    if (!confirm(`هل أنت متأكد من حذف المعلق "${artistName}"؟`)) return;
     setDeletingId(artistId);
     try {
       await deleteDoc(doc(db, 'artists', artistId));
       setAllArtists(prev => prev.filter(a => a.id !== artistId));
-    } catch (err) {
-      console.error(err);
-      alert('حدث خطأ أثناء الحذف.');
-    }
+    } catch (err) { alert('حدث خطأ أثناء الحذف.'); }
     setDeletingId(null);
   };
 
@@ -131,11 +138,12 @@ const Dashboard = () => {
       const storageRef = ref(storage, `audio_samples/${artist.id}/${Date.now()}_${audioSample.name}`);
       await uploadBytes(storageRef, audioSample);
       const url = await getDownloadURL(storageRef);
-      const newSample = { name: sampleName, url };
+      // العينة ترفع بحالة انتظار موافقة المديرة
+      const newSample = { name: sampleName, url, pendingApproval: true };
       await updateDoc(doc(db, 'artists', artist.id), { audioSamples: arrayUnion(newSample) });
       setArtist({ ...artist, audioSamples: [...(artist.audioSamples || []), newSample] });
       setSampleName(''); setAudioSample(null);
-      alert('تم رفع العينة!');
+      alert('تم رفع العينة! ستظهر للعملاء بعد موافقة الإدارة.');
     } catch (err) { alert('حدث خطأ.'); }
     setUploading(false);
   };
@@ -152,8 +160,9 @@ const Dashboard = () => {
 
   // ===== واجهة المديرة =====
   if (isAdmin) {
-    const pendingArtists = allArtists.filter(a => !a.approved);
-    const approvedArtists = allArtists.filter(a => a.approved);
+    const artistsWithPendingSamples = allArtists.filter(a =>
+      a.audioSamples?.some((s: any) => s.pendingApproval === true)
+    );
     const completedOrders = allOrders.filter(o => o.status === 'completed');
 
     return (
@@ -178,7 +187,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
               { label: 'إجمالي المعلقين', value: allArtists.length, color: 'bg-blue-500', icon: Users },
-              { label: 'بانتظار الموافقة', value: pendingArtists.length, color: 'bg-yellow-500', icon: Bell },
+              { label: 'عينات بانتظار الموافقة', value: artistsWithPendingSamples.length, color: 'bg-yellow-500', icon: Bell },
               { label: 'إجمالي الطلبات', value: allOrders.length, color: 'bg-purple-500', icon: FileText },
               { label: 'طلبات مكتملة', value: completedOrders.length, color: 'bg-green-500', icon: CheckCircle },
             ].map((stat, i) => (
@@ -202,8 +211,8 @@ const Dashboard = () => {
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all ${activeTab === tab.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                 <tab.icon size={16} />
                 {tab.label}
-                {tab.key === 'artists' && pendingArtists.length > 0 && (
-                  <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{pendingArtists.length}</span>
+                {tab.key === 'artists' && artistsWithPendingSamples.length > 0 && (
+                  <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{artistsWithPendingSamples.length}</span>
                 )}
               </button>
             ))}
@@ -212,42 +221,46 @@ const Dashboard = () => {
           {/* تبويب المعلقين */}
           {activeTab === 'artists' && (
             <div className="space-y-6">
-              {/* بانتظار الموافقة */}
-              {pendingArtists.length > 0 && (
+
+              {/* عينات بانتظار الموافقة */}
+              {artistsWithPendingSamples.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 overflow-hidden">
                   <div className="px-8 py-5 border-b border-yellow-100 bg-yellow-50">
-                    <h2 className="text-lg font-black text-yellow-800">⏳ بانتظار الموافقة ({pendingArtists.length})</h2>
+                    <h2 className="text-lg font-black text-yellow-800">🎙️ عينات بانتظار الموافقة ({artistsWithPendingSamples.length})</h2>
                   </div>
                   <div className="divide-y divide-gray-50">
-                    {pendingArtists.map(a => (
-                      <div key={a.id} className="px-8 py-5 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center font-black text-gray-400 text-lg">
+                    {artistsWithPendingSamples.map(a => (
+                      <div key={a.id} className="px-8 py-5">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-black text-gray-400">
                             {a.name?.[0] || '?'}
                           </div>
                           <div>
                             <p className="font-black text-gray-900">{a.name}</p>
-                            <p className="text-sm text-gray-500 font-bold">{a.email} | {a.voiceType} | {a.gender}</p>
-                            {a.tagline && <p className="text-xs text-gray-400 font-bold italic mt-0.5">"{a.tagline}"</p>}
+                            <p className="text-sm text-gray-500 font-bold">{a.voiceType} | {a.gender}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleApprove(a.id)}
-                            className="flex items-center gap-1 bg-green-600 text-white px-4 py-2 rounded-full font-black text-sm hover:bg-green-700 transition">
-                            <Check size={14} /> موافقة
-                          </button>
-                          <button onClick={() => handleReject(a.id)}
-                            className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-black text-sm hover:bg-yellow-200 transition">
-                            <X size={14} /> رفض
-                          </button>
-                          <button
-                            onClick={() => handleDelete(a.id, a.name)}
-                            disabled={deletingId === a.id}
-                            className="flex items-center gap-1 bg-red-600 text-white px-4 py-2 rounded-full font-black text-sm hover:bg-red-700 transition disabled:bg-gray-300"
-                          >
-                            <Trash2 size={14} />
-                            {deletingId === a.id ? '...' : 'حذف'}
-                          </button>
+                        <div className="space-y-3 mr-14">
+                          {a.audioSamples?.map((sample: any, idx: number) => (
+                            sample.pendingApproval && (
+                              <div key={idx} className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 flex items-center gap-4">
+                                <div className="flex-1">
+                                  <p className="font-black text-gray-800 text-sm mb-2">{sample.name}</p>
+                                  <audio src={sample.url} controls className="w-full h-8" />
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <button onClick={() => handleApproveSample(a.id, idx)}
+                                    className="flex items-center gap-1 bg-green-600 text-white px-3 py-2 rounded-full font-black text-xs hover:bg-green-700 transition">
+                                    <Check size={12} /> موافقة
+                                  </button>
+                                  <button onClick={() => handleRejectSample(a.id, idx)}
+                                    className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-2 rounded-full font-black text-xs hover:bg-red-200 transition">
+                                    <X size={12} /> رفض
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -255,54 +268,57 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* المعلقون النشطون */}
+              {/* جميع المعلقين */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-lg font-black text-gray-900">✅ المعلقون النشطون ({approvedArtists.length})</h2>
+                  <h2 className="text-lg font-black text-gray-900">المعلقون ({allArtists.length})</h2>
                   <Link href="/register" className="bg-red-600 text-white px-5 py-2 rounded-full font-black text-sm hover:bg-red-700 transition flex items-center gap-2">
                     <Plus size={16} /> إضافة معلق
                   </Link>
                 </div>
                 <div className="divide-y divide-gray-50">
-                  {approvedArtists.map(a => (
-                    <div key={a.id} className="px-8 py-5 flex items-center justify-between hover:bg-gray-50 transition">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                          {a.profilePicture ? (
-                            <img src={a.profilePicture} alt={a.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 font-black text-lg">
-                              {a.name?.[0] || '?'}
-                            </div>
+                  {allArtists.map(a => {
+                    const approvedSamples = a.audioSamples?.filter((s: any) => !s.pendingApproval) || [];
+                    const pendingSamples = a.audioSamples?.filter((s: any) => s.pendingApproval) || [];
+                    return (
+                      <div key={a.id} className="px-8 py-5 flex items-center justify-between hover:bg-gray-50 transition">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                            {a.profilePicture ? (
+                              <img src={a.profilePicture} alt={a.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 font-black text-lg">
+                                {a.name?.[0] || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-black text-gray-900">{a.name}</p>
+                            <p className="text-sm text-gray-500 font-bold">{a.voiceType} | {a.gender}</p>
+                            {a.tagline && <p className="text-xs text-gray-400 font-bold italic mt-0.5">"{a.tagline}"</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-black ${approvedSamples.length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {approvedSamples.length} عينة معتمدة
+                          </span>
+                          {pendingSamples.length > 0 && (
+                            <span className="px-3 py-1 rounded-full text-xs font-black bg-yellow-100 text-yellow-700">
+                              {pendingSamples.length} بانتظار
+                            </span>
                           )}
-                        </div>
-                        <div>
-                          <p className="font-black text-gray-900">{a.name}</p>
-                          <p className="text-sm text-gray-500 font-bold">{a.voiceType} | {a.gender}</p>
-                          {a.tagline && <p className="text-xs text-gray-400 font-bold italic mt-0.5">"{a.tagline}"</p>}
+                          <Link href={`/artists/${a.id}`} className="flex items-center gap-1 text-gray-500 hover:text-red-600 font-bold text-sm transition">
+                            <Eye size={16} /> عرض
+                          </Link>
+                          <button onClick={() => handleDelete(a.id, a.name)} disabled={deletingId === a.id}
+                            className="flex items-center gap-1 text-red-400 hover:text-red-600 font-bold text-sm transition disabled:text-gray-300">
+                            <Trash2 size={16} />
+                            {deletingId === a.id ? '...' : 'حذف'}
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-black ${a.audioSamples?.length > 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {a.audioSamples?.length > 0 ? `${a.audioSamples.length} عينة` : 'بدون عينة'}
-                        </span>
-                        <button onClick={() => handleReject(a.id)} className="text-gray-400 hover:text-yellow-600 font-bold text-xs transition">
-                          إلغاء الموافقة
-                        </button>
-                        <Link href={`/artists/${a.id}`} className="flex items-center gap-1 text-gray-500 hover:text-red-600 font-bold text-sm transition">
-                          <Eye size={16} /> عرض
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(a.id, a.name)}
-                          disabled={deletingId === a.id}
-                          className="flex items-center gap-1 text-red-400 hover:text-red-600 font-bold text-sm transition disabled:text-gray-300"
-                        >
-                          <Trash2 size={16} />
-                          {deletingId === a.id ? '...' : 'حذف'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -397,7 +413,14 @@ const Dashboard = () => {
             <h1 className="text-2xl font-black">{artist?.name}</h1>
             {artist?.tagline && <p className="text-red-400 font-black text-sm italic mt-1">"{artist.tagline}"</p>}
             <p className="text-gray-400 font-bold mt-1">{artist?.voiceType} | {artist?.gender}</p>
-            <p className="text-gray-500 text-sm font-bold mt-1">{artist?.audioSamples?.length || 0} عينة صوتية</p>
+            <p className="text-gray-500 text-sm font-bold mt-1">
+              {artist?.audioSamples?.filter((s: any) => !s.pendingApproval).length || 0} عينة معتمدة
+              {artist?.audioSamples?.filter((s: any) => s.pendingApproval).length > 0 && (
+                <span className="text-yellow-400 mr-2">
+                  • {artist.audioSamples.filter((s: any) => s.pendingApproval).length} بانتظار الموافقة
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -441,7 +464,8 @@ const Dashboard = () => {
         {activeTab === 'audio' && (
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-              <h2 className="text-xl font-black text-gray-900 mb-6">رفع عينة صوتية جديدة</h2>
+              <h2 className="text-xl font-black text-gray-900 mb-2">رفع عينة صوتية جديدة</h2>
+              <p className="text-gray-400 font-bold text-sm mb-6">ستظهر العينة للعملاء بعد موافقة الإدارة</p>
               <div className="space-y-4">
                 <input type="text" value={sampleName} onChange={e => setSampleName(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none font-bold text-sm"
@@ -457,12 +481,19 @@ const Dashboard = () => {
             </div>
 
             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-              <h2 className="text-xl font-black text-gray-900 mb-6">عيناتك الحالية ({artist?.audioSamples?.length || 0})</h2>
+              <h2 className="text-xl font-black text-gray-900 mb-6">عيناتك الحالية</h2>
               <div className="space-y-4">
                 {artist?.audioSamples?.length > 0 ? (
                   artist.audioSamples.map((sample: any, i: number) => (
-                    <div key={i} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                      <p className="font-black text-gray-800 mb-3 text-sm">{sample.name}</p>
+                    <div key={i} className={`p-4 rounded-2xl border ${sample.pendingApproval ? 'bg-yellow-50 border-yellow-100' : 'bg-gray-50 border-gray-100'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-black text-gray-800 text-sm">{sample.name}</p>
+                        {sample.pendingApproval ? (
+                          <span className="text-xs font-black text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">⏳ بانتظار الموافقة</span>
+                        ) : (
+                          <span className="text-xs font-black text-green-600 bg-green-100 px-2 py-1 rounded-full">✅ معتمدة</span>
+                        )}
+                      </div>
                       <audio src={sample.url} controls className="w-full h-10" />
                     </div>
                   ))
