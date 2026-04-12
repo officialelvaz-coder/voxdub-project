@@ -25,6 +25,8 @@ interface Artist {
   profilePicture?: string;
   audioSamples?: AudioSample[] | string[];
   audio?: string;
+  tagline?: string;
+  bio?: string;
 }
 
 export default function ArtistProfile() {
@@ -100,7 +102,6 @@ export default function ArtistProfile() {
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap'); * { font-family: 'Cairo', sans-serif; }`}</style>
 
-      {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 h-20 flex items-center">
         <div className="max-w-6xl mx-auto px-6 w-full flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
@@ -120,27 +121,31 @@ export default function ArtistProfile() {
 
         {/* بطاقة المعلق الرئيسية */}
         <div className="bg-gray-900 text-white rounded-3xl p-8 mb-8 flex flex-col md:flex-row items-center md:items-start gap-8">
-          {/* الصورة */}
           <div className="w-32 h-32 rounded-2xl overflow-hidden bg-gray-700 flex-shrink-0 border-4 border-white/10">
             {artist.profilePicture ? (
               <img src={artist.profilePicture} alt={artist.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-5xl font-black text-gray-400">
-                {artist.name[0]}
+                {artist.name?.[0] || '?'}
               </div>
             )}
           </div>
 
-          {/* المعلومات */}
           <div className="flex-1 text-center md:text-right">
-            <div className="flex items-center justify-center md:justify-end gap-3 mb-2">
+            <div className="flex items-center justify-center md:justify-end gap-3 mb-1">
               <Award size={20} className="text-red-400" />
               <h1 className="text-3xl font-black">{artist.name}</h1>
             </div>
+
+            {/* Tagline */}
+            {artist.tagline && (
+              <p className="text-red-400 font-black text-sm mb-3 italic">"{artist.tagline}"</p>
+            )}
+
             <p className="text-gray-400 font-bold mb-4">{artist.role || artist.style || ''}</p>
 
             {artist.rating && (
-              <div className="flex items-center justify-center md:justify-end gap-1 mb-6">
+              <div className="flex items-center justify-center md:justify-end gap-1 mb-4">
                 {[1,2,3,4,5].map(s => (
                   <Star key={s} size={18} className={s <= Math.round(artist.rating!) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-600'} />
                 ))}
@@ -148,22 +153,17 @@ export default function ArtistProfile() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {artist.gender && (
                 <div className="bg-white/5 p-3 rounded-2xl text-center border border-white/10">
                   <p className="text-gray-400 text-xs font-bold mb-1">الجنس</p>
-                  <p className="font-black text-sm">{artist.gender === 'male' ? 'ذكر' : artist.gender === 'female' ? 'أنثى' : artist.gender}</p>
+                  <p className="font-black text-sm">{artist.gender}</p>
                 </div>
               )}
               {artist.voiceType && (
                 <div className="bg-white/5 p-3 rounded-2xl text-center border border-white/10">
                   <p className="text-gray-400 text-xs font-bold mb-1">نوع الصوت</p>
-                  <p className="font-black text-sm">
-                    {artist.voiceType === 'young' ? 'شاب/شابة' :
-                     artist.voiceType === 'adult' ? 'بالغ/بالغة' :
-                     artist.voiceType === 'child' ? 'طفل/طفلة' :
-                     artist.voiceType}
-                  </p>
+                  <p className="font-black text-sm">{artist.voiceType}</p>
                 </div>
               )}
               {artist.experience && (
@@ -181,6 +181,14 @@ export default function ArtistProfile() {
             </div>
           </div>
         </div>
+
+        {/* Bio */}
+        {artist.bio && (
+          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-8">
+            <h2 className="text-xl font-black text-gray-900 mb-4">نبذة عن المعلق</h2>
+            <p className="text-gray-600 font-bold leading-relaxed">{artist.bio}</p>
+          </div>
+        )}
 
         {/* العينات الصوتية */}
         <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-8">
@@ -214,12 +222,8 @@ export default function ArtistProfile() {
           )}
         </div>
 
-        {/* زر الطلب */}
         <div className="text-center">
-          <Link
-            href={`/#order`}
-            className="bg-red-600 text-white px-12 py-4 rounded-full font-black text-lg hover:bg-gray-900 transition-all inline-block shadow-lg"
-          >
+          <Link href="/register" className="bg-red-600 text-white px-12 py-4 rounded-full font-black text-lg hover:bg-gray-900 transition-all inline-block shadow-lg">
             اطلب هذا الصوت الآن
           </Link>
         </div>
